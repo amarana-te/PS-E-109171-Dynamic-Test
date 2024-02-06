@@ -58,7 +58,7 @@ def post_data(headers, endp_url, payload):
     
     elif endpoint_data.status_code == 200:
 
-        print('Nothing has been modified', endp_url)
+        print('The test has been modified', endp_url)
 
         return endpoint_data.status_code
     

@@ -5,7 +5,7 @@ from openpyxl import Workbook, load_workbook
 
 
 
-def get_info(OAUTH):
+def get_info(OAUTH, json_targets):
 
     headers = {
         'Authorization' : 'Bearer ' + OAUTH,
@@ -15,9 +15,7 @@ def get_info(OAUTH):
     endp_url1 = "https://api.thousandeyes.com/v6/account-groups.json"
     endp_url2 = "https://api.thousandeyes.com/v6/agents.json"
     endp_url3 = "https://api.thousandeyes.com/v6/tests/http-server.json"
-    
-    print('STARTING GET INFO FUNCTION')
-    
+        
     account_groups = get_data(headers, endp_url1, params={})
 
     te_agents = {}
@@ -25,7 +23,8 @@ def get_info(OAUTH):
 
     for aid in account_groups['accountGroups']:
 
-        #print("AID: ", aid.get("aid"))
+        print("Account group: ", aid.get("accountGroupName"))
+
         agents = get_data(headers, endp_url2, params={"aid":aid.get("aid"), "agentTypes":"ENTERPRISE_CLUSTER,ENTERPRISE"})
 
         if "agents" in agents:
@@ -40,13 +39,15 @@ def get_info(OAUTH):
 
             for test in tests["test"]:
 
-                if test['savedEvent'] == 0:
+                if test['url'] in json_targets:
 
-                    endp_url4 = "https://api.thousandeyes.com/v6/tests/%s.json" % test.get("testId")
-                    test_details = get_data(headers, endp_url4, params={"aid":aid.get("aid")})
+                    if test['savedEvent'] == 0:
 
-                    # "Test URL" : [ testId, aid,[old agents],[agents para test]]
-                    te_tests.update({test.get("url"):[aid.get("aid"), test.get("testId"),[]]})
+                        endp_url4 = "https://api.thousandeyes.com/v6/tests/%s.json" % test.get("testId")
+                        test_details = get_data(headers, endp_url4, params={"aid":aid.get("aid")})
+
+                        # "Test URL" : [ testId, aid,[old agents],[agents para test]]
+                        te_tests.update({test.get("url"):[aid.get("aid"), test.get("testId"),[]]})
 
     print('END OF GET INFO FUNCTION')
 
@@ -58,22 +59,33 @@ def get_info(OAUTH):
 # Function to read all JSON files in a folder
 def read_files(directory_path: str) -> list:
 
-    agents = []
+    json_data = []
+
 
     for filename in os.listdir(directory_path):
-        
-        print('READING FILE', filename)
 
         if filename.endswith('.json'):
-
+            print('Reading JSON file: ', filename)
             file_path = os.path.join(directory_path, filename)
 
             with open(file_path, 'r') as file:
                 
                 data = json.load(file)
-                agents.append(data)
+                json_data.append(data)
 
-    return agents
+    return json_data
+
+
+def json_targets_func(cvs_agents):
+
+    json_targets = []
+
+    for agent in cvs_agents:
+        for url in agent['urls']:
+            if url not in json_targets:
+                json_targets.append(url)
+
+    return json_targets
 
 
 def agents2Tests(te_tests, te_agents, cvs_agents):
@@ -98,7 +110,7 @@ def provision_agents(te_tests, OAUTH):
         'Authorization' : 'Bearer ' + OAUTH,
         'Content-Type' : 'application/json'
     }
-    print('PROVISIONAGENTS STARTING')
+    
 
     for i in te_tests.values():
 
