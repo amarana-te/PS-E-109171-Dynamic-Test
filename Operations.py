@@ -1,6 +1,8 @@
 import os
 import json
 from Connector import get_data, post_data
+from openpyxl import Workbook, load_workbook
+
 
 
 def get_info(OAUTH):
@@ -14,7 +16,7 @@ def get_info(OAUTH):
     endp_url2 = "https://api.thousandeyes.com/v6/agents.json"
     endp_url3 = "https://api.thousandeyes.com/v6/tests/http-server.json"
     
-
+    print('STARTING GET INFO FUNCTION')
     
     account_groups = get_data(headers, endp_url1, params={})
 
@@ -38,14 +40,15 @@ def get_info(OAUTH):
 
             for test in tests["test"]:
 
-                endp_url4 = "https://api.thousandeyes.com/v6/tests/%s.json" % test.get("testId")
-                test_details = get_data(headers, endp_url4, params={"aid":aid.get("aid")})
+                if test['savedEvent'] == 0:
 
-                # "Test URL" : [ testId, aid,[old agents],[agents para test]]
-                te_tests.update({test.get("url"):[aid.get("aid"), test.get("testId"),[]]})
+                    endp_url4 = "https://api.thousandeyes.com/v6/tests/%s.json" % test.get("testId")
+                    test_details = get_data(headers, endp_url4, params={"aid":aid.get("aid")})
 
-    #print(te_agents)
-    #print(te_tests)
+                    # "Test URL" : [ testId, aid,[old agents],[agents para test]]
+                    te_tests.update({test.get("url"):[aid.get("aid"), test.get("testId"),[]]})
+
+    print('END OF GET INFO FUNCTION')
 
     return te_agents, te_tests
 
@@ -58,6 +61,8 @@ def read_files(directory_path: str) -> list:
     agents = []
 
     for filename in os.listdir(directory_path):
+        
+        print('READING FILE', filename)
 
         if filename.endswith('.json'):
 
@@ -72,19 +77,17 @@ def read_files(directory_path: str) -> list:
 
 
 def agents2Tests(te_tests, te_agents, cvs_agents):
+    
+    print('AGENTS2TEST STARTING')
 
     for cvs_data in cvs_agents:
 
         for url in cvs_data["urls"]:
 
-            if url not in te_tests:
-                continue
+            if url in te_tests and cvs_data["name"] in te_agents:
+                te_tests[url][2].append(te_agents[cvs_data["name"]][1])
 
-            if cvs_data["name"] not in te_agents:
-                continue
-
-            te_tests[url][2].append(te_agents[cvs_data["name"]][1])
-
+    print('AGENTS2TEST ending')
 
     return te_tests
 
@@ -95,8 +98,10 @@ def provision_agents(te_tests, OAUTH):
         'Authorization' : 'Bearer ' + OAUTH,
         'Content-Type' : 'application/json'
     }
+    print('PROVISIONAGENTS STARTING')
 
     for i in te_tests.values():
+
 
         url = "https://api.thousandeyes.com/v6/tests/http-server/%s/update.json?aid=%s" % (i[1], i[0]) 
 
@@ -120,6 +125,6 @@ def provision_agents(te_tests, OAUTH):
             payload = {"agents": [], "enabled": 0} #just disable the test
             
             print(post_data(headers, endp_url=url, payload=json.dumps(payload)))
-
-
+    
+    print('PROVISIONAGENTS ENDING')
 

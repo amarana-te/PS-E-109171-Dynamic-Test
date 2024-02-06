@@ -48,18 +48,27 @@ def post_data(headers, endp_url, payload):
         dt_object = datetime.fromtimestamp(int(endpoint_data.headers.get('x-organization-rate-limit-reset'))) - datetime.now()
         time.sleep(dt_object.seconds + 1)
         endpoint_data = super_http.post(url=endp_url, headers=headers, data=payload)
+        
    
         return endpoint_data.status_code
 
     elif endpoint_data.status_code == 403:
 
+        return endpoint_data.json()
+    
+    elif endpoint_data.status_code == 200:
+
+        print('Nothing has been modified', endp_url)
+
         return endpoint_data.status_code
     
-    elif endpoint_data.status_code == 200 or endpoint_data.status_code == 201:
-
+    elif  endpoint_data.status_code == 201:
+        
+        print('The test has been modified', endp_url)
+        
         return endpoint_data.status_code
 
     else:
 
         print("status code: ", endpoint_data.status_code)
-        return endpoint_data.status_code
+        return endpoint_data.json()
