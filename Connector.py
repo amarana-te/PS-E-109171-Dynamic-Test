@@ -6,7 +6,7 @@ from datetime import datetime
 # HTTPX object
 limits = httpx.Limits(max_keepalive_connections=35, max_connections=77)
 timeout = httpx.Timeout(10.0, read=None)
-super_httpx = httpx.Client(limits=limits, timeout=timeout)
+super_http = httpx.Client(limits=limits, timeout=timeout)
 # HTTPX
 
 def get_data(headers, endp_url, params):
