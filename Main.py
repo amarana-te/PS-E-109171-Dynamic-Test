@@ -13,17 +13,20 @@ def main(directory_path):
 
     print('')
     print('GETTING ACCOUNTS INFO ')
-    te_agents, te_tests = get_info(OAUTH="", json_targets=json_targets)
+    te_agents, te_tests = get_info(OAUTH="", json_targets=json_targets) ##TOKEN
+    
 
     print('')
     print('GETTING AGENTS AND TESTS RELATION ')
     te_tests = agents2Tests(te_tests, te_agents, cvs_agents)
+    #print(te_tests)
+    
 
     print('')
     print('PROVISION AGENTS STARTING')
-    provisioning = provision_agents(te_tests, OAUTH="")
+    provisioning = provision_agents(te_tests, OAUTH="")## TOKEN
 
-    return provisioning
+    #return provisioning
 
 
 print(main(directory_path="cvs_folder/"))

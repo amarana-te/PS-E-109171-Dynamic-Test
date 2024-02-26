@@ -19,7 +19,7 @@ def get_info(OAUTH, json_targets):
     account_groups = get_data(headers, endp_url1, params={})
 
     te_agents = {}
-    te_tests = {}
+    te_tests = []
 
     for aid in account_groups['accountGroups']:
 
@@ -47,7 +47,7 @@ def get_info(OAUTH, json_targets):
                         test_details = get_data(headers, endp_url4, params={"aid":aid.get("aid")})
 
                         # "Test URL" : [ testId, aid,[old agents],[agents para test]]
-                        te_tests.update({test.get("url"):[aid.get("aid"), test.get("testId"),[]]})
+                        te_tests.append({test.get("url"):[aid.get("aid"), test.get("testId"),[]]})
 
     print('END OF GET INFO FUNCTION')
 
@@ -93,11 +93,15 @@ def agents2Tests(te_tests, te_agents, cvs_agents):
     print('AGENTS2TEST STARTING')
 
     for cvs_data in cvs_agents:
-
+        
         for url in cvs_data["urls"]:
 
-            if url in te_tests and cvs_data["name"] in te_agents:
-                te_tests[url][2].append(te_agents[cvs_data["name"]][1])
+            for test in te_tests:
+                
+                if url in test and cvs_data["name"] in te_agents:
+                    # aid-agent validation
+                    if te_agents[cvs_data["name"]][0] == test[url][0]:
+                        test[url][2].append(te_agents[cvs_data["name"]][1])
 
     print('AGENTS2TEST ending')
 
@@ -112,31 +116,34 @@ def provision_agents(te_tests, OAUTH):
     }
     
 
-    for i in te_tests.values():
-
-
-        url = "https://api.thousandeyes.com/v6/tests/http-server/%s/update.json?aid=%s" % (i[1], i[0]) 
-
-        agents = i[2]
-
-        new_agents = []
-
-        if agents:
-
-            for agent in agents:
-
-                new_agents.append({"agentId": agent})
-
-            payload = {"agents": new_agents, "enabled": 1} #asgin agents and enable test
-            
-            print(post_data(headers, endp_url=url, payload=json.dumps(payload)))
+    for test in te_tests:
         
-        #if the test does not have any agents assigned to it
-        else:
+
+        for key, i in test.items():
+
+
+            url = "https://api.thousandeyes.com/v6/tests/http-server/%s/update.json?aid=%s" % (i[1], i[0]) 
+
+            agents = i[2]
+
+            new_agents = []
+
+            if agents:
+
+                for agent in agents:
+
+                    new_agents.append({"agentId": agent})
+
+                payload = {"agents": new_agents, "enabled": 1} #asgin agents and enable test
+                
+                print(post_data(headers, endp_url=url, payload=json.dumps(payload)))
             
-            payload = {"agents": [], "enabled": 0} #just disable the test
-            
-            print(post_data(headers, endp_url=url, payload=json.dumps(payload)))
+            #if the test does not have any agents assigned to it
+            else:
+                
+                payload = {"agents": [], "enabled": 0} #just disable the test
+                
+                print(post_data(headers, endp_url=url, payload=json.dumps(payload)))
     
     print('PROVISIONAGENTS ENDING')
 
