@@ -1,8 +1,6 @@
 import os
 import json
 from Connector import get_data, post_data
-from openpyxl import Workbook, load_workbook
-
 
 
 def get_info(OAUTH, json_targets):
@@ -128,6 +126,9 @@ def provision_agents(te_tests, OAUTH):
 
             new_agents = []
 
+            print(" ")
+            print(i)
+
             if agents:
 
                 for agent in agents:
@@ -136,14 +137,21 @@ def provision_agents(te_tests, OAUTH):
 
                 payload = {"agents": new_agents, "enabled": 1} #asgin agents and enable test
                 
-                print(post_data(headers, endp_url=url, payload=json.dumps(payload)))
+                print(payload)
+                
+                status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
+                print("Test updated, agents added and enabled TestId: " + str(i[1]) + " Account group: "+ str(i[0]) + " Status code: "+ str(status_code))
             
             #if the test does not have any agents assigned to it
             else:
                 
-                payload = {"agents": [], "enabled": 0} #just disable the test
+                payload = {"enabled": 0} #just disable the test
                 
-                print(post_data(headers, endp_url=url, payload=json.dumps(payload)))
+                status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
+
+                print("Test disabled, no agents asigned TestId: "+ str(i[1]) + " Account group: "+ str(i[0]) + " Status code: "+ str(status_code) )
+
+
     
     print('PROVISIONAGENTS ENDING')
 

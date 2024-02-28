@@ -1,4 +1,4 @@
 {
     "name": "s01022app.stores.cvs.com",
-    "urls": ["https://12.100.10.1:80", "https://10.100.10.1:80"]
+    "urls": ["https://12.100.10.1:80"]
 }

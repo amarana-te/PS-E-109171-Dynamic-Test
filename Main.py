@@ -19,7 +19,6 @@ def main(directory_path):
     print('')
     print('GETTING AGENTS AND TESTS RELATION ')
     te_tests = agents2Tests(te_tests, te_agents, cvs_agents)
-    #print(te_tests)
     
 
     print('')
