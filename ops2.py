@@ -66,22 +66,18 @@ def provision_agents(te_tests, OAUTH):
         new_agents = [{"agentId": agent} for agent in agents] if agents else []
 
         payload = {"agents": new_agents, "enabled": bool(agents)}
+        print(payload)
         response = post_data(headers, url, json.dumps(payload))
 
-        if response.status_code not in [200, 204]:
-            print(f"Error updating test {test_id}: {response.text}")
-            continue
-
-        time.sleep(1)  # Basic rate limiting
 
 # Example usage, ensuring you replace 'OAUTH' with your actual OAuth token
 # and adjust the directory path to your JSON files as needed.
 if __name__ == "__main__":
-    OAUTH = "your_oauth_token_here"
-    directory_path = "path_to_your_json_files"
+    OAUTH = "56f1454a-fc71-4245-a5a0-68bc93da1aaf"
+    directory_path = "cvs_folder/"
 
     te_agents, te_tests = get_info(OAUTH)
     cvs_agents = read_files(directory_path)
-    agent_to_remove = "s02011app.stores.cvs.com"
+    agent_to_remove = "s00045app.stores.cvs.com"
     te_tests = removeAgentFromTests(te_tests, te_agents, agent_to_remove)
     provision_agents(te_tests, OAUTH)

@@ -13,7 +13,7 @@ def main(directory_path):
 
     print('')
     print('GETTING ACCOUNTS INFO ')
-    te_agents, te_tests = get_info(OAUTH="", json_targets=json_targets) ##TOKEN
+    te_agents, te_tests = get_info(OAUTH="", json_targets=json_targets) ## TOKEN
     
 
     print('')

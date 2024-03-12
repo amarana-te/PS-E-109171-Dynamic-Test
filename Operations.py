@@ -69,7 +69,12 @@ def read_files(directory_path: str) -> list:
             with open(file_path, 'r') as file:
                 
                 data = json.load(file)
-                json_data.append(data)
+
+                if data["name"]:
+                    json_data.append(data)
+                else:
+                    print("This file does not have agents, it won't be considered. "+ filename)
+
 
     return json_data
 
