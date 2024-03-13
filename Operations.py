@@ -3,7 +3,7 @@ import json
 from Connector import get_data, post_data
 
 
-def get_info(OAUTH, json_targets):
+def get_info(OAUTH, json_targets, unassign_agents):
 
     headers = {
         'Authorization' : 'Bearer ' + OAUTH,
@@ -19,6 +19,8 @@ def get_info(OAUTH, json_targets):
     te_agents = {}
     te_tests = []
 
+
+
     for aid in account_groups['accountGroups']:
 
         print("Account group: ", aid.get("accountGroupName"))
@@ -31,21 +33,60 @@ def get_info(OAUTH, json_targets):
 
                 te_agents.update({agent.get("agentName"):[aid.get("aid"), agent.get("agentId")]})
 
+
         tests = get_data(headers, endp_url3, params={"aid":aid.get("aid")})
+
 
         if "test" in tests:
 
             for test in tests["test"]:
 
+                update_agents = []
+                unassign_flag = 0
+
                 if test['url'] in json_targets:
 
                     if test['savedEvent'] == 0:
-
-                        endp_url4 = "https://api.thousandeyes.com/v6/tests/%s.json" % test.get("testId")
-                        test_details = get_data(headers, endp_url4, params={"aid":aid.get("aid")})
-
                         # "Test URL" : [ testId, aid,[old agents],[agents para test]]
                         te_tests.append({test.get("url"):[aid.get("aid"), test.get("testId"),[]]})
+
+                
+                
+                
+                endp_url4 = "https://api.thousandeyes.com/v6/tests/%s.json" % test.get("testId")
+                test_details = get_data(headers, endp_url4, params={"aid":aid.get("aid")})
+
+
+                if "agents" in test_details["test"][0]:
+                    for agent in test_details["test"][0]["agents"]:
+
+                        if agent["agentName"] not in unassign_agents:
+                            update_agents.append({"agentId": agent.get("agentId")})
+                                
+                        else:
+                            print("Will unassign an agent ", agent.get("agentId"))
+                            unassign_flag = 1
+                            
+                        if unassign_flag == 1 and len(update_agents) > 0:
+
+                            #update the agents
+                            url = "https://api.thousandeyes.com/v6/tests/http-server/%s/update.json?aid=%s" % (test.get("testId"), aid.get("aid"))
+
+                            payload = {"agents": update_agents} #asgin agents and enable test                            
+                            status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
+                            print("Test updated, some agents were not required here " + str(test.get("testId")) + " Account group: "+ str(aid.get("aid")) + " Status code: "+ str(status_code))
+
+
+                        elif unassign_flag == 1 and len(update_agents) == 0:
+
+                            #turnoff the test
+                            url = "https://api.thousandeyes.com/v6/tests/http-server/%s/update.json?aid=%s" % (test.get("testId"), aid.get("aid"))
+
+                            payload = {"enabled":0} #asgin agents and enable test                            
+                            status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
+                            print("Test disabled, agents from previous run not required " + str(test.get("testId")) + " Account group: "+ str(aid.get("aid")) + " Status code: "+ str(status_code))
+           
+    
 
     print('END OF GET INFO FUNCTION')
 
@@ -58,6 +99,7 @@ def get_info(OAUTH, json_targets):
 def read_files(directory_path: str) -> list:
 
     json_data = []
+    unassign_agents = []
 
 
     for filename in os.listdir(directory_path):
@@ -72,11 +114,15 @@ def read_files(directory_path: str) -> list:
 
                 if data["name"]:
                     json_data.append(data)
+
+                    if len(data["urls"]) == 1 and data["urls"][0] == "":
+                        unassign_agents.append(data["name"])
+
                 else:
                     print("This file does not have agents, it won't be considered. "+ filename)
 
-
-    return json_data
+                
+    return json_data, unassign_agents
 
 
 def json_targets_func(cvs_agents):
