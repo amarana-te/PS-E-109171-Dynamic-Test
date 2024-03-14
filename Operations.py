@@ -3,7 +3,7 @@ import json
 from Connector import get_data, post_data
 
 
-def get_info(OAUTH, json_targets, unassign_agents):
+def get_info(OAUTH, json_targets, unassign_agents, json_agents):
 
     headers = {
         'Authorization' : 'Bearer ' + OAUTH,
@@ -18,6 +18,7 @@ def get_info(OAUTH, json_targets, unassign_agents):
 
     te_agents = {}
     te_tests = []
+    remove_agents = {}
 
 
 
@@ -59,7 +60,22 @@ def get_info(OAUTH, json_targets, unassign_agents):
 
                 if "agents" in test_details["test"][0]:
                     for agent in test_details["test"][0]["agents"]:
+                        
+                        #This condition is to unassign agents from another tests that had them assigned before the current run
+                        if "/RxConnectRxP/" in test_details["test"][0]["url"] and agent.get("agentName") in json_agents:                    
 
+                            if agent.get("agentId") in remove_agents:
+                                remove_agents[agent.get("agentId")].insert(0, test_details["test"][0]["testId"])
+                            else: 
+                                remove_agents[agent.get("agentId")] = [test_details["test"][0]["testId"]]
+
+                            if aid.get("aid") not in remove_agents[agent.get("agentId")]:
+                                remove_agents[agent.get("agentId")].append(aid.get("aid"))
+                            
+
+
+
+                        # This conditions will unassign an agent from all the tests that contains an agent when the json looks like: {"name": "s02011app.stores.cvs.com","urls": [""]}
                         if agent["agentName"] not in unassign_agents:
                             update_agents.append({"agentId": agent.get("agentId")})
                                 
@@ -85,12 +101,10 @@ def get_info(OAUTH, json_targets, unassign_agents):
                             payload = {"enabled":0} #asgin agents and enable test                            
                             status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
                             print("Test disabled, agents from previous run not required " + str(test.get("testId")) + " Account group: "+ str(aid.get("aid")) + " Status code: "+ str(status_code))
-           
-    
 
     print('END OF GET INFO FUNCTION')
 
-    return te_agents, te_tests
+    return te_agents, te_tests, remove_agents
 
 
 
@@ -99,6 +113,7 @@ def get_info(OAUTH, json_targets, unassign_agents):
 def read_files(directory_path: str) -> list:
 
     json_data = []
+    json_agents = []
     unassign_agents = []
 
 
@@ -114,15 +129,18 @@ def read_files(directory_path: str) -> list:
 
                 if data["name"]:
                     json_data.append(data)
+                    json_agents.append(data["name"])
 
                     if len(data["urls"]) == 1 and data["urls"][0] == "":
                         unassign_agents.append(data["name"])
+                    
+                    
 
                 else:
                     print("This file does not have agents, it won't be considered. "+ filename)
 
                 
-    return json_data, unassign_agents
+    return json_data, json_agents, unassign_agents
 
 
 def json_targets_func(cvs_agents):
@@ -157,7 +175,7 @@ def agents2Tests(te_tests, te_agents, cvs_agents):
     return te_tests
 
 
-def provision_agents(te_tests, OAUTH):
+def provision_agents(te_tests, remove_agents,OAUTH):
 
     headers = {
         'Authorization' : 'Bearer ' + OAUTH,
@@ -186,13 +204,23 @@ def provision_agents(te_tests, OAUTH):
 
                     new_agents.append({"agentId": agent})
 
+                    if agent in remove_agents:
+
+                        for testid in remove_agents[agent]:
+
+                            if testid == i[1]:
+
+                                remove_agents[agent].remove(i[1]) ##lo quitamos de remove_agents porque no queremos que a ese test se le quite este agente
+
                 payload = {"agents": new_agents, "enabled": 1} #asgin agents and enable test
                 
                 print(payload)
                 
                 status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
                 print("Test updated, agents added and enabled TestId: " + str(i[1]) + " Account group: "+ str(i[0]) + " Status code: "+ str(status_code))
-            
+
+
+
             #if the test does not have any agents assigned to it
             else:
                 
@@ -202,7 +230,59 @@ def provision_agents(te_tests, OAUTH):
 
                 print("Test disabled, no agents asigned TestId: "+ str(i[1]) + " Account group: "+ str(i[0]) + " Status code: "+ str(status_code) )
 
-
-    
+            
     print('PROVISIONAGENTS ENDING')
 
+    return remove_agents
+
+
+def clear_previous(remove_agents,OAUTH="56f1454a-fc71-4245-a5a0-68bc93da1aaf"):
+
+    headers = {
+        'Authorization' : 'Bearer ' + OAUTH,
+        'Content-Type' : 'application/json'
+    }
+
+
+    for key, tests_list in remove_agents.items():
+        
+        for testid in tests_list[:-1]:
+
+            unassign_flag = 0
+            update_agents = []
+
+            #delete that agent from that test
+            #1. get details to see what are the agents it has assign
+            endp_url4 = "https://api.thousandeyes.com/v6/tests/%s.json" % testid
+            test_details = get_data(headers, endp_url4, params={"aid":tests_list[-1]})
+
+            if "agents" in test_details["test"][0]:
+                for agent in test_details["test"][0]["agents"]:
+
+                    #if the agent is not the agent to unassign, then cosider it to push it back                        
+                    if agent["agentId"] != key:
+                        update_agents.append({"agentId": agent.get("agentId")})
+                                
+                    else:
+                        print("Will unassign an agent ", agent.get("agentId"))
+                        unassign_flag = 1
+                            
+                if unassign_flag == 1 and len(update_agents) > 0:
+
+                    #update the agents
+                    url = "https://api.thousandeyes.com/v6/tests/http-server/%s/update.json?aid=%s" % (testid, tests_list[-1])
+
+                    payload = {"agents": update_agents, "enabled":1} #asgin agents and enable test                            
+                    status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
+                    print("For this test " + str(testid) + " An agent will be unassigned, not needed anymore. Account: "+ str(tests_list[-1]) +" Status code: "+ str(status_code))
+
+
+                elif unassign_flag == 1 and len(update_agents) == 0:
+
+                    #turnoff the test
+                    url = "https://api.thousandeyes.com/v6/tests/http-server/%s/update.json?aid=%s" % (testid, tests_list[-1])
+
+                    payload = {"enabled":0} #asgin agents and enable test                            
+                    status_code = post_data(headers, endp_url=url, payload=json.dumps(payload))
+                    print("Test disable, agents from previous run not required " + str(testid) + " Account group: "+ str(tests_list[-1]) + " Status code: "+ str(status_code))
+        
