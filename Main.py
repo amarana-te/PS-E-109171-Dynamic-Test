@@ -1,3 +1,5 @@
+import schedule
+import time
 from Operations import read_files, get_info, agents2Tests, provision_agents, json_targets_func, clear_previous
 
 
@@ -6,7 +8,6 @@ def main(directory_path, OAUTH):
     print('GETTING JSON INFO ')
     cvs_agents, json_agents ,unassign_agents = read_files(directory_path)
 
-    #func intermedia para get targets
     print('')
     print('GETTING JSON TARGETS ')
     json_targets = json_targets_func(cvs_agents)
@@ -23,16 +24,28 @@ def main(directory_path, OAUTH):
 
     print('')
     print('PROVISION AGENTS STARTING')
-    remove_agents = provision_agents(te_tests, remove_agents,OAUTH=OAUTH)## TOKEN
+    remove_agents = provision_agents(te_tests, remove_agents,OAUTH=OAUTH)
 
 
     print('')
     print('UNASSIGN AGENTS FROM PREVIOS RUN')
-    remove_agents = clear_previous(remove_agents,OAUTH=OAUTH)## TOKEN
+    remove_agents = clear_previous(remove_agents,OAUTH=OAUTH)
 
 
 
 
-main(directory_path="cvs_folder/", OAUTH="56f1454a-fc71-4245-a5a0-68bc93da1aaf")
+def job():
+    print("Executing the scheduled task...")
 
+    main(directory_path="cvs_folder/", OAUTH="9ac05fdd-1277-4430-9360-3b13fab8ef42") # ----> Variables that can be changed
 
+    print("Execution finished, waiting for next round")
+    print(" ")
+
+# Schedule the job every day at the desired time
+schedule.every().day.at("06:00").do(job)
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+ 
