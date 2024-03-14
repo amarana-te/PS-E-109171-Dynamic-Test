@@ -37,7 +37,7 @@ def main(directory_path, OAUTH):
 def job():
     print("Executing the scheduled task...")
 
-    main(directory_path="cvs_folder/", OAUTH="9ac05fdd-1277-4430-9360-3b13fab8ef42") # ----> Variables that can be changed
+    main(directory_path="cvs_folder/", OAUTH="") # ----> Variables that can be changed
 
     print("Execution finished, waiting for next round")
     print(" ")
