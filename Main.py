@@ -1,5 +1,5 @@
-import schedule
-import time
+#import schedule
+#import time
 from Operations import read_files, get_info, agents2Tests, provision_agents, json_targets_func, clear_previous
 
 
@@ -33,7 +33,9 @@ def main(directory_path, OAUTH):
 
 
 
+main(directory_path="cvs_folder/", OAUTH="") # ----> Variables that can be changed
 
+"""
 def job():
     print("Executing the scheduled task...")
 
@@ -48,4 +50,4 @@ schedule.every().day.at("06:00").do(job)
 while True:
     schedule.run_pending()
     time.sleep(1)
- 
+"""

@@ -1,6 +1,5 @@
 import httpx
 import time
-import json
 from datetime import datetime
 
 # HTTPX object
