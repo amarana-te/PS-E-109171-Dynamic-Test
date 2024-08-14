@@ -1,53 +1,24 @@
-#import schedule
-#import time
-from Operations import read_files, get_info, agents2Tests, provision_agents, json_targets_func, clear_previous
+from Operations import read_files, get_info, turn_off_tests, provision_agents
 
+OAUTH = ""
 
-def main(directory_path, OAUTH):
+headers = {
+        'Authorization' : 'Bearer ' + OAUTH,
+        'Content-Type' : 'application/json'
+    }
 
-    print('GETTING JSON INFO ')
-    cvs_agents, json_agents ,unassign_agents = read_files(directory_path)
+def main(directory_path):
 
-    print('')
-    print('GETTING JSON TARGETS ')
-    json_targets = json_targets_func(cvs_agents)
-
-    print('')
-    print('GETTING ACCOUNTS INFO ')
-    te_agents, te_tests, remove_agents = get_info(OAUTH=OAUTH, json_targets=json_targets, unassign_agents=unassign_agents, json_agents = json_agents) ## TOKEN
-
-
-    print('')
-    print('GETTING AGENTS AND TESTS RELATION ')
-    te_tests = agents2Tests(te_tests, te_agents, cvs_agents)
+    #leer jsons para obtener toda la info guardada
+    cvs_agents = read_files(directory_path)
     
+    #obtenemos info de TE
+    cvs_agents = get_info(headers, data=cvs_agents)
 
-    print('')
-    print('PROVISION AGENTS STARTING')
-    remove_agents = provision_agents(te_tests, remove_agents,OAUTH=OAUTH)
-
-
-    print('')
-    print('UNASSIGN AGENTS FROM PREVIOS RUN')
-    remove_agents = clear_previous(remove_agents,OAUTH=OAUTH)
+    cvs_agents = provision_agents(cvs_agents, headers)
 
 
+    turn_off_tests(cvs_agents, headers)
 
-main(directory_path="cvs_folder/", OAUTH="") # ----> Variables that can be changed
 
-"""
-def job():
-    print("Executing the scheduled task...")
-
-    main(directory_path="cvs_folder/", OAUTH="") # ----> Variables that can be changed
-
-    print("Execution finished, waiting for next round")
-    print(" ")
-
-# Schedule the job every day at the desired time
-schedule.every().day.at("06:00").do(job)
-
-while True:
-    schedule.run_pending()
-    time.sleep(1)
-"""
+main(directory_path="cvs_folder/")
