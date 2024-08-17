@@ -18,7 +18,7 @@ def main(directory_path):
     if cvs_agents:
 
         #obtenemos info de TE
-        print(f'The information on the JSON was updated. New config will be pushed... \n')
+        print('The information on the JSON was updated. New config will be pushed... \n')
 
         cvs_agents = get_info(headers, data=cvs_agents)
 
@@ -31,7 +31,7 @@ def main(directory_path):
         cvs_agents = update_tests(cvs_agents, headers)
 
         print("\n===========================================================")
-        print(f'\n Unassign agents from previous run...\n')
+        print('\n Unassign agents from previous run...\n')
         disable_tests(cvs_agents, headers)
 
         print("\n===========================================================")

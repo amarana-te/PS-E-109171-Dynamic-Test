@@ -82,7 +82,6 @@ def get_info(headers:dict, data:dict):
                                             
                                             #   Si no es el unico agente, tenemos que updatear el test -- agents = agents - current_agent
                                             remove_tests.append({"testId":test.get("testId"), "testDescription": test.get("description"), "agents": new_agents})
-
                                             
 
                             data.update({"tests": tests_list, "toRemove": remove_tests})
@@ -210,8 +209,6 @@ def disable_tests(cvs_agents:dict, headers:dict):
 
                 url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={cvs_agents.get('aid')}"
                 payload = {"enabled": True, "agents":test.get('agents')}
-
-                print(f'PAYLOAD TO REMOVE SECOND CONDITION')
 
                 status, provision = put_data(headers, url, json.dumps(payload))
 
