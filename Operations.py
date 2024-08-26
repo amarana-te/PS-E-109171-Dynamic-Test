@@ -94,11 +94,35 @@ def get_info(headers:dict, data:dict):
 
 # Function to read all JSON files in a folder
 def read_files(directory_path: str) -> dict:
+
+    # Iterate over all files in the directory
+    for filename in os.listdir(directory_path):
+        
+        if filename.endswith('.json'):
+            
+            file_path = os.path.join(directory_path, filename)
+
+            # Read and load the JSON data
+            with open(file_path, 'r') as file:
+                
+                data = json.load(file)
+                
+            return data
+        
+        else:
+
+            return {}
+
+
+# Function to read all JSON files in a folder
+def read_files_newer_only(directory_path: str) -> dict:
     # Get today's date in YYYY-MM-DD format
     today = time.strftime('%Y-%m-%d')
 
     for filename in os.listdir(directory_path):
+        
         if filename.endswith('.json'):
+            
             file_path = os.path.join(directory_path, filename)
 
             # Get the last modification time of the file
@@ -109,8 +133,11 @@ def read_files(directory_path: str) -> dict:
             if mod_time_str == today:
                 # Read and return the JSON data
                 with open(file_path, 'r') as file:
+                
                     data = json.load(file)
+                
                 return data
+            
             else:
                 # File was modified on a different date
                 return {}
