@@ -191,9 +191,47 @@ def update_tests(cvs_agents: dict, headers: dict):
         
                     print(f"    Test {test['testId']} couldn't be updated, no agent added to it. Reason: {provision}")
 
-    return True
+    return cvs_agents
 
 
+
+def disable_tests(cvs_agents:dict, headers:dict):
+
+    print('+ disable_tests function \n')
+
+    if "toRemove" in cvs_agents:
+
+        for test in cvs_agents.get("toRemove"):
+
+            if not test.get('agents'):
+
+                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={cvs_agents.get('aid')}"
+                payload = {"enabled": False}
+
+                status, provision = put_data(headers, url, json.dumps(payload))
+
+                if status == 200 or status == 201:
+
+                    print(f"    Test {test['testId']} was disabled, agent {cvs_agents['name']} 'removed'.")
+                
+                else:
+
+                    print(f"    Test {test['testId']} couln'd be disabled. Reason: {provision}")
+            
+            elif test.get('agents'):
+
+                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={cvs_agents.get('aid')}"
+                payload = {"enabled": True, "agents":test.get('agents')}
+
+                status, provision = put_data(headers, url, json.dumps(payload))
+
+                if status == 200 or status == 201:
+
+                    print(f"    Test {test['testId']} was updated, agent {cvs_agents['name']} totally removed from the test.")
+
+                else:
+
+                    print(f"    Test {test['testId']} could't be updated, agent {cvs_agents['name']} still lives there. Reason: {provision}")
 
 
 
