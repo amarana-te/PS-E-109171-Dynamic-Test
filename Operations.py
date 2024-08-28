@@ -158,9 +158,6 @@ def read_files_newer_only(directory_path: str) -> dict:
 
 
 
-
-
-
 # NEW function to update the tests configuration
 def update_tests(cvs_agents:dict, headers:dict):
 
@@ -215,7 +212,7 @@ def update_tests(cvs_agents:dict, headers:dict):
                     print(f"    Test {test['testId']} couldn't be updated, no agent added to it. Reason: {provision}")
 
 
-    return cvs_agents
+    return True
 
 
 

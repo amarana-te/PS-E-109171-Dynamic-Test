@@ -37,10 +37,10 @@ def main(directory_path):
 
         cvs_agents = update_tests(cvs_agents, headers)
         
-        if cvs_agents is None:
+        if cvs_agents:
         
-            print("Failed to update tests. Please ensure the data is correctly formatted and the API is accessible.")
-            return
+            print("Updated tests.")
+
 
         print("\n===========================================================")
         print('\n Unassign agents from previous run...\n')
