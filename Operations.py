@@ -23,7 +23,7 @@ def get_info(headers:dict, data:dict):
         #print("AID: ", aid.get("aid"))
             status, agents = get_data(headers, endp_url2, params={"aid":aid.get("aid"), "agentTypes":"enterprise,enterprise-cluster"})
 
-            if "agents" in agents and status ==200:
+            if "agents" in agents and status == 200:
 
                 for agent in agents["agents"]:
 
@@ -87,6 +87,11 @@ def get_info(headers:dict, data:dict):
                             data.update({"tests": tests_list, "toRemove": remove_tests})
 
                             break
+
+                    elif agent["agentName"] != data.get("name"):
+
+                        print(f'Agent Name from the .json file: {data.get("name")} was not found\n ')
+                        print("===========================================================")
                 
     return data
 

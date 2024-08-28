@@ -66,4 +66,5 @@ def main(directory_path):
         print(f"An unexpected error occurred: {e}. Please check the logs for more details.")
 
 if __name__ == "__main__":
+
     main(directory_path="cvs_folder/")
