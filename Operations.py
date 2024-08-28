@@ -82,12 +82,12 @@ def get_info(headers: dict, data: dict):
 
                     elif agent["agentName"] != data.get("name"):
         
-                        print("===========================================================")
+                        print("=")
         
                     else:
         
                         print(f'Status code {status} test agents: {agent} \n ')
-                        print("===========================================================")
+                        print("=")
 
     return data
 
