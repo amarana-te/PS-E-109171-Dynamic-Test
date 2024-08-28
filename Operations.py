@@ -90,12 +90,12 @@ def get_info(headers:dict, data:dict):
 
                     elif agent["agentName"] != data.get("name"):
 
-                        print(f'Agent Name from the .json file: {data.get("name")} was not found in the ag {aid.get('accountGroupName')} \n ')
+                        print(f'Agent Name from the .json file: {data.get("name")} was not found {agent["agentName"]} status {status} \n ')
                         print("===========================================================")
 
                     else:
 
-                        print(f'Status code {status} test agents: {test_details['agents']} \n ')
+                        print(f'Status code {status} test agents: {agent} \n ')
                         print("===========================================================")
                 
     return data
