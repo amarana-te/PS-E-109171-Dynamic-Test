@@ -35,11 +35,13 @@ def main(directory_path):
         print(f'This is the assignment information for this agent: \n{json.dumps(cvs_agents, indent=4)} \n')
         print("===========================================================\n")
 
+        
         cvs_agents = update_tests(cvs_agents, headers)
         
         if cvs_agents:
         
             print("Updated tests.")
+            pass
 
 
         print("\n===========================================================")

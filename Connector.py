@@ -9,8 +9,7 @@ from datetime import datetime
 limits = httpx.Limits(max_keepalive_connections=400, max_connections=1600, keepalive_expiry=234)
 timeout = httpx.Timeout(17.7, read=None, pool=7.7)
 
-# Setup logging
-logging.basicConfig(filename='api_calls.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+
 
 ##############NO Async###################################
 class ConnectorSingleton:
@@ -30,9 +29,6 @@ class ConnectorSingleton:
 
 super_http = ConnectorSingleton.get_instance()
 
-def log_request(endpoint, status_code, roundtrip):
-    """Log the request details including the time taken and status code."""
-    logging.info(f"Status Code {status_code}: {endpoint} time: {roundtrip:.4f} seconds")
 
 
 def handle_api_errors(response, endpoint):
@@ -61,7 +57,6 @@ def request_with_retry(method, url, **kwargs):
     
     if rate_limit_remaining <= 11 and reset_time >= 17:
         
-        log_request(url, response.status_code, 5)  # Log this event
         time.sleep(5)  # Sleep for 7 seconds to relieve the API
 
     if response.status_code == 429:
@@ -73,7 +68,6 @@ def request_with_retry(method, url, **kwargs):
         response = super_http.request(method, url, **kwargs)
         roundtrip = time.time() - retry_start
     
-    log_request(url, response.status_code, roundtrip)
     
     # Handle specific error codes
     status_code, error_response, has_error = handle_api_errors(response, url)

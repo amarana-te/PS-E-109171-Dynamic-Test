@@ -81,13 +81,12 @@ def get_info(headers: dict, data: dict):
                             break
 
                     elif agent["agentName"] != data.get("name"):
-        
-                        print("=")
-        
+
+                        pass
+                
                     else:
         
                         print(f'Status code {status} test agents: {agent} \n ')
-                        print("=")
 
     return data
 
