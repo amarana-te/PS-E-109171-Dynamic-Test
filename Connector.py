@@ -1,13 +1,8 @@
 import httpx
 import time
-import asyncio
 import logging
 import logging.handlers
 from datetime import datetime
-#from contextlib import asynccontextmanager
-
-limits = httpx.Limits(max_keepalive_connections=400, max_connections=1600, keepalive_expiry=234)
-timeout = httpx.Timeout(17.7, read=None, pool=7.7)
 
 
 
@@ -20,7 +15,7 @@ class ConnectorSingleton:
         
         if cls._instance is None:
             
-            limits = httpx.Limits(max_keepalive_connections=400, max_connections=1600, keepalive_expiry=234)
+            limits = httpx.Limits(max_keepalive_connections=5, max_connections=10, keepalive_expiry=15)
             timeout = httpx.Timeout(17.7, read=None, pool=7.7)
             cls._instance = httpx.Client(limits=limits, timeout=timeout)
         
@@ -57,7 +52,7 @@ def request_with_retry(method, url, **kwargs):
     
     if rate_limit_remaining <= 11 and reset_time >= 17:
         
-        time.sleep(5)  # Sleep for 7 seconds to relieve the API
+        time.sleep(7)  # Sleep for 7 seconds to relieve the API
 
     if response.status_code == 429:
         

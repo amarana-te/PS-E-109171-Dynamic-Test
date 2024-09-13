@@ -1,7 +1,7 @@
 from Operations import read_files, get_info, update_tests, disable_tests
 import json
 
-OAUTH = ""
+OAUTH = "7e6ed89a-ad04-401b-bd63-4b6f9203436b"
 
 headers = {
     'Authorization': 'Bearer ' + OAUTH,
