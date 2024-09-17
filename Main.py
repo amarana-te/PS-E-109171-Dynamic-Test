@@ -1,6 +1,10 @@
 from Operations import read_files, get_info, update_tests, disable_tests
 import json
-from token_1 import OAUTH
+
+
+# Read the token from token.txt
+with open('token.txt', 'r') as file:
+    OAUTH = file.read().strip()  # Use strip() to remove any surrounding whitespace or newline characters
 
 
 headers = {
@@ -8,6 +12,7 @@ headers = {
   'Accept': 'application/hal+json',
   'Authorization': 'Bearer ' + OAUTH
 }
+
 
 def main(directory_path):
     
