@@ -1,11 +1,12 @@
 from Operations import read_files, get_info, update_tests, disable_tests
 import json
+from token_1 import OAUTH
 
-OAUTH = "7e6ed89a-ad04-401b-bd63-4b6f9203436b"
 
 headers = {
-    'Authorization': 'Bearer ' + OAUTH,
-    'Content-Type': 'application/json'
+  'Content-Type': 'application/json',
+  'Accept': 'application/hal+json',
+  'Authorization': 'Bearer ' + OAUTH
 }
 
 def main(directory_path):

@@ -16,7 +16,7 @@ class ConnectorSingleton:
         if cls._instance is None:
             
             limits = httpx.Limits(max_keepalive_connections=5, max_connections=10, keepalive_expiry=15)
-            timeout = httpx.Timeout(17.7, read=None, pool=7.7)
+            timeout = httpx.Timeout(27, read=None, pool=15)
             cls._instance = httpx.Client(limits=limits, timeout=timeout)
         
         return cls._instance
@@ -32,7 +32,7 @@ def handle_api_errors(response, endpoint):
     if response.status_code in {400, 401, 403, 404, 405}:
         
         error_message = f"Error {response.status_code} for {endpoint}: {response.text}"
-        logging.error(error_message)
+        #logging.error(error_message)
         
         return response.status_code, response.json(), True
     
@@ -90,7 +90,7 @@ def get_data(headers, endp_url, params):
 
 def post_data(headers, endp_url, payload):
     
-    status_code, response = request_with_retry('POST', endp_url, headers=headers, data=payload)
+    status_code, response = request_with_retry('POST', url=endp_url, headers=headers, data=payload)
     
     if isinstance(response, dict) or status_code in {200, 201}:
     
@@ -104,7 +104,7 @@ def post_data(headers, endp_url, payload):
     
 def put_data(headers, endp_url, payload):
     
-    status_code, response = request_with_retry('PUT', endp_url, headers=headers, data=payload)
+    status_code, response = request_with_retry('PUT', url=endp_url, headers=headers, data=payload)
     
     if isinstance(response, dict) or status_code in {200, 201}:
     
