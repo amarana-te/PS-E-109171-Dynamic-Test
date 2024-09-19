@@ -1,4 +1,4 @@
-from Operations import read_files, get_info, update_tests, disable_tests
+from Operations import read_files_newer_only, get_info, update_tests, disable_tests
 import json
 
 
@@ -18,17 +18,17 @@ def main(directory_path):
     
     try:
         
-        cvs_agents = read_files(directory_path)
+        cvs_agents = read_files_newer_only(directory_path)
         if not cvs_agents:
         
             print(f"No data found in the provided directory: {directory_path}. Please check if the directory contains valid JSON files.")
             return
 
 
-        print(f'Data gathered from the .json file: {cvs_agents} \n ')
-        print("===========================================================")
+        print(f'Data gathered from {len(cvs_agents)} .json files')
+        print("\n==========================================================")
 
-        print('The information on the JSON was updated. New config will be pushed... \n')
+        print('Parsing information New config will be pushed... \n')
 
         cvs_agents = get_info(headers, data=cvs_agents)
         
@@ -38,7 +38,7 @@ def main(directory_path):
             return
 
         print("===========================================================")
-        print(f'This is the assignment information for this agent: \n{json.dumps(cvs_agents, indent=4)} \n')
+        print(f'This is the assignment information  \n{cvs_agents} \n')
         print("===========================================================\n")
 
         
@@ -47,13 +47,13 @@ def main(directory_path):
         if cvs_agents:
         
             print("Updated tests.")
-            pass
+            
 
 
         print("\n===========================================================")
         print('\n Unassign agents from previous run...\n')
         
-        disable_tests(cvs_agents, headers)
+        #disable_tests(cvs_agents, headers)
 
         print("\n===========================================================")
 
