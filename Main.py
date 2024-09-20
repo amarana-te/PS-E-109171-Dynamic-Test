@@ -1,4 +1,4 @@
-from Operations import read_files_newer_only, get_info, update_tests, disable_tests
+from Operations import read_files_newer_only, get_info, bulk_update, update_tests, disable_tests
 import json
 
 
@@ -42,7 +42,7 @@ def main(directory_path):
         print("===========================================================\n")
 
         
-        cvs_agents = update_tests(cvs_agents, headers)
+        cvs_agents = bulk_update(cvs_agents, headers)
         
         if cvs_agents:
         

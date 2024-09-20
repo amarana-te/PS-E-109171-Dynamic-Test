@@ -1,12 +1,15 @@
 {
     "targetUrls": [
         {
-            "name": "www.google.com",
-            "agents": ["store-xxx1", "store-xxx2", "store-xxx3"]
+            "testId": "4817141",
+            "enabled": false,
+            "agents": ["thousandeyes_68500.localdomain", "thousandeyes_68512.localdomain", "thousandeyes_68514.localdomain"]
         },
-        {
-            "name": "www.cisco.com",
-            "agents": ["store-xxx1", "store-xxx2", "store-xxx3"]
+        {   "testId": "4161287",
+            "enabled": true,
+            "agents": ["thousandeyes_68540.localdomain", "thousandeyes_64512.localdomain", "thousandeyes_68515.localdomain"]
         }
         ]
 }
+
+

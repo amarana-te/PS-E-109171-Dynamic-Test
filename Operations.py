@@ -9,6 +9,35 @@ endp_url2 = f"{BASE_URL}agents"
 endp_url3 = f"{BASE_URL}tests/http-server"
 
 
+# Function to read all JSON files in a folder and return data from those modified today
+def read_files_newer_only(directory_path: str) -> list:
+
+    today = time.strftime('%Y-%m-%d')
+    data_list = []  # List to store data from all files modified today
+
+    for filename in os.listdir(directory_path):
+    
+        if filename.endswith('.json'):
+    
+            file_path = os.path.join(directory_path, filename)
+
+            mod_time = os.path.getmtime(file_path)
+            mod_time_str = time.strftime('%Y-%m-%d', time.localtime(mod_time))
+
+            if mod_time_str == today:
+    
+                with open(file_path, 'r') as file:
+    
+                    data = json.load(file)
+                    data_list.append(data)  # Add the data to the list
+
+    if not data_list:
+    
+        print("No JSON files found or none modified today.")
+
+    return data_list  # Return the list of data
+
+
 def get_agents_list(data:list):
 
     agent_list = []
@@ -23,18 +52,12 @@ def get_agents_list(data:list):
 
 def get_targets_list(data:list, agent):
 
-    #target_list = []
     for target in data:
 
         if target.get('name') == agent:
         
             return target.get('urls')
         
-        #urls = target.get("urls", [])
-
-        #for url in urls:
-        
-
 
 def get_info(headers: dict, data: list):
 
@@ -123,54 +146,74 @@ def get_info(headers: dict, data: list):
     return new_data
 
 
-# Function to read all JSON files in a folder
-def read_files(directory_path: str) -> dict:
+def group_agents_by_test(data):
     
-    for filename in os.listdir(directory_path):
-    
-        if filename.endswith('.json'):
-    
-            file_path = os.path.join(directory_path, filename)
+    target_urls = {}
 
-            with open(file_path, 'r') as file:
+    for agent in data:
     
-                data = json.load(file)
-    
-            return data
-    
-        else:
-    
-            return {}
+        agent_name = agent['name']
+        aid = agent['aid']
+
+        # Proceso de pruebas habilitadas o deshabilitadas, omitiendo 'toRemove'
+        for test in agent['tests']:
+            
+            test_id = test['testId']
+            enabled = test['enabled']
+
+            # Si el testId no existe, inicializamos
+            if test_id not in target_urls:
+
+                target_urls[test_id] = {"enabled": enabled, "agents": []}
+
+            # Agregar el nombre del agente si no está ya en la lista
+            if agent_name not in target_urls[test_id]['agents']:
+                
+                target_urls[test_id]['agents'].append(agent_name)
+
+    # Convertimos a la estructura requerida
+    result = {
+        "targetUrls": [
+            {
+                "testId": test_id,
+                "aid": test_data['aid'], 
+                "enabled": test_data['enabled'],
+                "agents": test_data['agents']
+            }
+            for test_id, test_data in target_urls.items()
+        ]
+    }
+
+    return result
 
 
-# Function to read all JSON files in a folder and return data from those modified today
-def read_files_newer_only(directory_path: str) -> list:
+def bulk_update(cvs_agentes:list, headers:dict):
 
-    today = time.strftime('%Y-%m-%d')
-    data_list = []  # List to store data from all files modified today
+    todays_date = datetime.now().strftime("%Y-%m-%d")    
+    print(f'+ update_tests function {todays_date} \n')
 
-    for filename in os.listdir(directory_path):
-    
-        if filename.endswith('.json'):
-    
-            file_path = os.path.join(directory_path, filename)
+    tests_info =  group_agents_by_test(data=cvs_agentes)
 
-            mod_time = os.path.getmtime(file_path)
-            mod_time_str = time.strftime('%Y-%m-%d', time.localtime(mod_time))
+    for test in tests_info.get("targetUrls"):
 
-            if mod_time_str == today:
-    
-                with open(file_path, 'r') as file:
-    
-                    data = json.load(file)
-                    data_list.append(data)  # Add the data to the list
+        if not test.get("enabled"):
 
-    if not data_list:
-    
-        print("No JSON files found or none modified today.")
+            url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={test.get('aid')}"
+            payload = {"agents": [{"agentId": info.get("agentId")}], "enabled": True, "description": todays_date}
+                
+            status, provision = put_data(headers, url, json.dumps(payload))
 
-    return data_list  # Return the list of data
+            if status == 200 or status == 201:
 
+                print(f"\tTest {test['testId']} was enabled successfully and agents {info.get('name')} are assigned.")
+        
+            else:
+        
+                print(f"\tTest {test['testId']} failed to be enabled and agent {status} not assigned. Reason: {provision}")
+
+        elif test.get("enabled"):
+
+            break
 
 
 def update_tests(cvs_agents: list, headers: dict):
@@ -199,7 +242,7 @@ def update_tests(cvs_agents: list, headers: dict):
                     print(f"\tTest {test['testId']} failed to be enabled and agent {status} not assigned. Reason: {provision}")
 
 
-            elif test.get("enabled") == 3:
+            elif test.get("enabled"):
         
                 url = f'{endp_url3}/{test.get("testId")}'
                 
@@ -271,6 +314,30 @@ def disable_tests(cvs_agents:list, headers:dict):
                 else:
 
                     print(f"    Test {test['testId']} could't be updated, agent {agent('name')} still lives there. Reason: {provision}")
+
+
+
+
+#############################################
+
+# Function to read all JSON files in a folder
+def read_files(directory_path: str) -> dict:
+    
+    for filename in os.listdir(directory_path):
+    
+        if filename.endswith('.json'):
+    
+            file_path = os.path.join(directory_path, filename)
+
+            with open(file_path, 'r') as file:
+    
+                data = json.load(file)
+    
+            return data
+    
+        else:
+    
+            return {}
 
 
 
