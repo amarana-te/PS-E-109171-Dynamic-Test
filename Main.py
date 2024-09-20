@@ -38,7 +38,7 @@ def main(directory_path):
             return
 
         print("===========================================================")
-        print(f'This is the assignment information  \n{cvs_agents} \n')
+        print(f'This is the assignment information  \n\n{cvs_agents} \n')
         print("===========================================================\n")
 
         

@@ -147,14 +147,13 @@ def get_info(headers: dict, data: list):
 
 
 def group_agents_by_test(data):
-    
     target_urls = {}
 
     for agent in data:
-    
-        agent_name = agent['name']
-        aid = agent['aid']
 
+        agent_id = agent['agentId']
+        aid = agent['aid']
+        
         # Proceso de pruebas habilitadas o deshabilitadas, omitiendo 'toRemove'
         for test in agent['tests']:
             
@@ -163,20 +162,23 @@ def group_agents_by_test(data):
 
             # Si el testId no existe, inicializamos
             if test_id not in target_urls:
-
+                
                 target_urls[test_id] = {"enabled": enabled, "agents": []}
 
-            # Agregar el nombre del agente si no está ya en la lista
-            if agent_name not in target_urls[test_id]['agents']:
+
+            eas = {"agentId": agent_id}
+
+            if eas not in target_urls[test_id]['agents']:
                 
-                target_urls[test_id]['agents'].append(agent_name)
+                
+                target_urls[test_id]['agents'].append(eas)
 
     # Convertimos a la estructura requerida
     result = {
         "targetUrls": [
             {
                 "testId": test_id,
-                "aid": test_data['aid'], 
+                "aid": aid,
                 "enabled": test_data['enabled'],
                 "agents": test_data['agents']
             }
@@ -199,13 +201,13 @@ def bulk_update(cvs_agentes:list, headers:dict):
         if not test.get("enabled"):
 
             url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={test.get('aid')}"
-            payload = {"agents": [{"agentId": info.get("agentId")}], "enabled": True, "description": todays_date}
+            payload = {"agents": test.get("agents"), "enabled": True, "description": todays_date}
                 
             status, provision = put_data(headers, url, json.dumps(payload))
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test['testId']} was enabled successfully and agents {info.get('name')} are assigned.")
+                print(f"\tTest {test['testId']} was enabled successfully and agents {test.get('agents')} were assigned.")
         
             else:
         
@@ -213,7 +215,7 @@ def bulk_update(cvs_agentes:list, headers:dict):
 
         elif test.get("enabled"):
 
-            break
+            continue
 
 
 def update_tests(cvs_agents: list, headers: dict):
