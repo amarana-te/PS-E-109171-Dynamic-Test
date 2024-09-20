@@ -42,18 +42,18 @@ def main(directory_path):
         print("===========================================================\n")
 
         
-        #cvs_agents = update_tests(cvs_agents, headers)
+        cvs_agents = update_tests(cvs_agents, headers)
         
-        #if cvs_agents:
+        if cvs_agents:
         
-        #    print("Updated tests.")
+            print("Updated tests.")
             
 
 
         print("\n===========================================================")
         print('\n Unassign agents from previous run...\n')
         
-        #disable_tests(cvs_agents, headers)
+        disable_tests(cvs_agents, headers)
 
         print("\n===========================================================")
 

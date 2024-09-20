@@ -36,10 +36,6 @@ def get_targets_list(data:list, agent):
         
 
 
-    
-
-
-
 def get_info(headers: dict, data: list):
 
     new_data = []
@@ -195,7 +191,6 @@ def update_tests(cvs_agents: list, headers: dict):
 
                 if status == 200 or status == 201:
 
-                    print(provision)
         
                     print(f"\tTest {test['testId']} was enabled successfully and agent {info.get('name')} was assigned.")
         
@@ -239,24 +234,24 @@ def update_tests(cvs_agents: list, headers: dict):
 
 
 
-def disable_tests(cvs_agents:dict, headers:dict):
+def disable_tests(cvs_agents:list, headers:dict):
 
     print('+ disable_tests function \n')
 
-    if "toRemove" in cvs_agents:
+    for agent in cvs_agents:
 
-        for test in cvs_agents.get("toRemove"):
+        for test in agent.get("toRemove"):
 
             if not test.get('agents'):
 
-                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={cvs_agents.get('aid')}"
+                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={agent.get('aid')}"
                 payload = {"enabled": False}
 
                 status, provision = put_data(headers, url, json.dumps(payload))
 
                 if status == 200 or status == 201:
 
-                    print(f"    Test {test['testId']} was disabled, agent {cvs_agents['name']} 'removed'.")
+                    print(f"    Test {test['testId']} was disabled, agent {agent.get('name')} 'removed'.")
                 
                 else:
 
@@ -264,18 +259,18 @@ def disable_tests(cvs_agents:dict, headers:dict):
             
             elif test.get('agents'):
 
-                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={cvs_agents.get('aid')}"
+                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={agent.get('aid')}"
                 payload = {"enabled": True, "agents":test.get('agents')}
 
                 status, provision = put_data(headers, url, json.dumps(payload))
 
                 if status == 200 or status == 201:
 
-                    print(f"    Test {test['testId']} was updated, agent {cvs_agents['name']} totally removed from the test.")
+                    print(f"    Test {test['testId']} was updated, agent {agent.get('name')} totally removed from the test.")
 
                 else:
 
-                    print(f"    Test {test['testId']} could't be updated, agent {cvs_agents['name']} still lives there. Reason: {provision}")
+                    print(f"    Test {test['testId']} could't be updated, agent {agent('name')} still lives there. Reason: {provision}")
 
 
 

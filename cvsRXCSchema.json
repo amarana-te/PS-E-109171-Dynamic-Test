@@ -1,0 +1,12 @@
+{
+    "targetUrls": [
+        {
+            "name": "www.google.com",
+            "agents": ["store-xxx1", "store-xxx2", "store-xxx3"]
+        },
+        {
+            "name": "www.cisco.com",
+            "agents": ["store-xxx1", "store-xxx2", "store-xxx3"]
+        }
+        ]
+}
