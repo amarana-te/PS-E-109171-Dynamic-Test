@@ -46,7 +46,7 @@ def main(directory_path):
         
         if cvs_agents:
         
-            print("Updated tests.")
+            print("\nUpdated tests.")
             
 
 

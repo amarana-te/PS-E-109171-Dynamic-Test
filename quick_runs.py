@@ -57,6 +57,51 @@ def group_agents_by_test(data):
 
 
 
-result = group_agents_by_test(data)
-print(result)
+#result = group_agents_by_test(data)
+#print(result)
 
+
+
+a_list = [{"agentId": "agentId1"}, {"agentId": "agentId2"}, {"agentId": "agentId3"}]
+
+b_list = [{"agentId": "agentId4"}, {"agentId": "agentId5"}, {"agentId": "agentId6"}]
+
+#print(a_list + b_list)
+
+
+def clean_and_group_tests(cvs_agents: list):
+    
+    # Diccionario para agrupar las pruebas por testId
+    grouped_tests = {}
+
+    for agent in cvs_agents:
+
+        aid = agent.get('aid')
+        
+        for test in agent.get("toRemove", []):
+            
+            test_id = test.get('testId')
+
+            # Inicializamos la agrupación si no existe
+            if test_id not in grouped_tests:
+            
+                grouped_tests[test_id] = {
+                    "aid": aid,
+                    "agents": [],
+                    "remove_agents": []
+                }
+
+            # Si no hay agentes (caso de remover el test completo), agregamos el agente al 'remove_agents'
+            if not test.get('agents'):
+            
+                grouped_tests[test_id]["remove_agents"].append({"agentId": agent['agentId']})
+
+            # Si hay agentes específicos a remover, se agregan a la lista
+            elif test.get('agents'):
+            
+                grouped_tests[test_id]["agents"].extend(test.get('agents'))
+
+    return grouped_tests
+
+result = clean_and_group_tests(data)
+print(result)

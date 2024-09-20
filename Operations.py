@@ -189,12 +189,12 @@ def group_agents_by_test(data):
     return result
 
 
-def bulk_update(cvs_agentes:list, headers:dict):
+def bulk_update(cvs_agents:list, headers:dict):
 
     todays_date = datetime.now().strftime("%Y-%m-%d")    
     print(f'+ update_tests function {todays_date} \n')
 
-    tests_info =  group_agents_by_test(data=cvs_agentes)
+    tests_info =  group_agents_by_test(data=cvs_agents)
 
     for test in tests_info.get("targetUrls"):
 
@@ -207,15 +207,188 @@ def bulk_update(cvs_agentes:list, headers:dict):
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test['testId']} was enabled successfully and agents {test.get('agents')} were assigned.")
+                print(f"\tTest {test['testId']} was enabled successfully and agents {len(test.get('agents'))} were assigned.")
         
             else:
         
                 print(f"\tTest {test['testId']} failed to be enabled and agent {status} not assigned. Reason: {provision}")
 
+
         elif test.get("enabled"):
 
-            continue
+            url = f'{endp_url3}/{test.get("testId")}'    
+            status, get_test_details = get_data(headers, url, params={"aid": test.get("aid"), "expand": "agent"})
+
+
+            if status == 200 and "agents" in get_test_details:
+
+                url = f'{endp_url3}/{test.get("testId")}?aid={test.get("aid")}'
+                
+                new_agents = []
+
+                for agent in get_test_details.get("agents"):
+        
+                    new_agents.append({"agentId": agent.get("agentId")})
+
+                new_agents = new_agents + test.get("agents")    
+                payload = {"agents": new_agents, "enabled": True, "description": todays_date}
+                status, provision = put_data(headers=headers, endp_url=url, payload=json.dumps(payload))
+
+
+                if status == 200 or status == 201:
+        
+                    print(f"\tTest {test['testId']} updated successfully, agent {len(new_agents)} was added.")
+        
+                else:
+        
+                    print(f"\tTest {test['testId']} couldn't be updated, no agent added to it. Reason: {provision}")
+
+
+    return cvs_agents
+
+
+def clean_and_group_tests(cvs_agents: list):
+    
+    # Diccionario para agrupar las pruebas por testId
+    grouped_tests = {}
+
+    for agent in cvs_agents:
+
+        aid = agent.get('aid')
+        
+        for test in agent.get("toRemove", []):
+            
+            test_id = test.get('testId')
+
+            # Inicializamos la agrupación si no existe
+            if test_id not in grouped_tests:
+            
+                grouped_tests[test_id] = {
+                    "aid": aid,
+                    "agents": [],
+                    "remove_agents": []
+                }
+
+            # Si no hay agentes (caso de remover el test completo), agregamos el agente al 'remove_agents'
+            if not test.get('agents'):
+            
+                grouped_tests[test_id]["remove_agents"].append({"agentId": agent['agentId']})
+
+            # Si hay agentes específicos a remover, se agregan a la lista
+            elif test.get('agents'):
+            
+                grouped_tests[test_id]["agents"].extend(test.get('agents'))
+
+    return grouped_tests
+
+
+
+
+def bulk_disable(cvs_agents:list, headers:dict):
+    
+    print('+ disable_tests function \n')
+
+    grouped_tests = clean_and_group_tests(cvs_agents)
+    
+    for test_id, details in grouped_tests.items():
+    
+        url = f"{BASE_URL}tests/http-server/{test_id}?aid={details['aid']}"
+
+        # Si hay agentes que remover, enviamos una actualización con los agentes a remover
+        if details['remove_agents']:
+
+            payload = {"enabled": False, "agents": details['remove_agents']}
+            status, provision = put_data(headers, url, json.dumps(payload))
+
+            if status == 200 or status == 201:
+
+                print(f"\tTest {test_id} was disabled, agents {len(details['remove_agents'])} were removed.")
+            
+            else:
+
+                print(f"\nTest {test_id} couldn't be disabled. Reason: {provision}")
+
+        # Si hay agentes a actualizar, mandamos la lista de agentes
+        if details['agents']:
+
+            payload = {"enabled": True, "agents": details['agents']}
+            
+            status, provision = put_data(headers, url, json.dumps(payload))
+
+            if status == 200 or status == 201:
+
+                print(f"\nTest {test_id} was updated with agents {details['agents']}.")
+
+            else:
+
+                print(f"\nTest {test_id} couldn't be updated. Reason: {provision}")
+
+
+
+
+
+def disable_tests(cvs_agents:list, headers:dict):
+
+    print('+ disable_tests function \n')
+
+    for agent in cvs_agents:
+
+        for test in agent.get("toRemove"):
+
+            if not test.get('agents'):
+
+                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={agent.get('aid')}"
+                payload = {"enabled": False}
+
+                status, provision = put_data(headers, url, json.dumps(payload))
+
+                if status == 200 or status == 201:
+
+                    print(f"    Test {test['testId']} was disabled, agent {agent.get('name')} 'removed'.")
+                
+                else:
+
+                    print(f"    Test {test['testId']} couln'd be disabled. Reason: {provision}")
+            
+            elif test.get('agents'):
+
+                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={agent.get('aid')}"
+                payload = {"enabled": True, "agents":test.get('agents')}
+
+                status, provision = put_data(headers, url, json.dumps(payload))
+
+                if status == 200 or status == 201:
+
+                    print(f"\tTest {test['testId']} was updated, {len(agent.get('name'))} agents totally removed from the test.")
+
+                else:
+
+                    print(f"\tTest {test['testId']} could't be updated, agent {agent('name')} still lives there. Reason: {provision}")
+
+
+
+
+
+########Deprecated################################
+
+# Function to read all JSON files in a folder
+def read_files(directory_path: str) -> dict:
+    
+    for filename in os.listdir(directory_path):
+    
+        if filename.endswith('.json'):
+    
+            file_path = os.path.join(directory_path, filename)
+
+            with open(file_path, 'r') as file:
+    
+                data = json.load(file)
+    
+            return data
+    
+        else:
+    
+            return {}
 
 
 def update_tests(cvs_agents: list, headers: dict):
@@ -276,73 +449,5 @@ def update_tests(cvs_agents: list, headers: dict):
                         print(f"\tTest {test['testId']} couldn't be updated, no agent added to it. Reason: {provision}")
 
     return cvs_agents
-
-
-
-def disable_tests(cvs_agents:list, headers:dict):
-
-    print('+ disable_tests function \n')
-
-    for agent in cvs_agents:
-
-        for test in agent.get("toRemove"):
-
-            if not test.get('agents'):
-
-                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={agent.get('aid')}"
-                payload = {"enabled": False}
-
-                status, provision = put_data(headers, url, json.dumps(payload))
-
-                if status == 200 or status == 201:
-
-                    print(f"    Test {test['testId']} was disabled, agent {agent.get('name')} 'removed'.")
-                
-                else:
-
-                    print(f"    Test {test['testId']} couln'd be disabled. Reason: {provision}")
-            
-            elif test.get('agents'):
-
-                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={agent.get('aid')}"
-                payload = {"enabled": True, "agents":test.get('agents')}
-
-                status, provision = put_data(headers, url, json.dumps(payload))
-
-                if status == 200 or status == 201:
-
-                    print(f"    Test {test['testId']} was updated, agent {agent.get('name')} totally removed from the test.")
-
-                else:
-
-                    print(f"    Test {test['testId']} could't be updated, agent {agent('name')} still lives there. Reason: {provision}")
-
-
-
-
-#############################################
-
-# Function to read all JSON files in a folder
-def read_files(directory_path: str) -> dict:
-    
-    for filename in os.listdir(directory_path):
-    
-        if filename.endswith('.json'):
-    
-            file_path = os.path.join(directory_path, filename)
-
-            with open(file_path, 'r') as file:
-    
-                data = json.load(file)
-    
-            return data
-    
-        else:
-    
-            return {}
-
-
-
-
 
 
