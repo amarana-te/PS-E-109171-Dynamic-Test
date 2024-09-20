@@ -42,11 +42,11 @@ def main(directory_path):
         print("===========================================================\n")
 
         
-        cvs_agents = update_tests(cvs_agents, headers)
+        #cvs_agents = update_tests(cvs_agents, headers)
         
-        if cvs_agents:
+        #if cvs_agents:
         
-            print("Updated tests.")
+        #    print("Updated tests.")
             
 
 

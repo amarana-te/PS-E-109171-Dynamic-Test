@@ -21,20 +21,22 @@ def get_agents_list(data:list):
     return agent_list
 
 
-def get_targets_list(data:list):
+def get_targets_list(data:list, agent):
 
-    target_list = []
+    #target_list = []
     for target in data:
 
-        urls = target.get("urls", [])
-
-        for url in urls:
+        if target.get('name') == agent:
         
-            if url not in target_list:
+            return target.get('urls')
         
-                target_list.append(url)
+        #urls = target.get("urls", [])
 
-    return target_list
+        #for url in urls:
+        
+
+
+    
 
 
 
@@ -72,7 +74,7 @@ def get_info(headers: dict, data: list):
 
                             tests_list = []
                             remove_tests = []
-                            targets_list = get_targets_list(data)
+                            targets_list = get_targets_list(data, new_agent.get('name'))
 
                             for test in tests["tests"]: #list all the tests
         
@@ -174,63 +176,66 @@ def read_files_newer_only(directory_path: str) -> list:
     return data_list  # Return the list of data
 
 
-def update_test_status(test_id: str, aid: str, agents: list, enabled: bool, headers: dict, description: str) -> tuple:
-    """
-    Helper function to update a test's status and agents.
-    """
-    url = f"{BASE_URL}tests/http-server/{test_id}?aid={aid}"
-    payload = {
-        "agents": agents,
-        "enabled": enabled,
-        "description": description
-    }
 
-    status, provision = put_data(headers, url, json.dumps(payload))
-
-    if status == 200 or status == 201:
-        action = "enabled" if enabled else "disabled"
-        print(f"Test {test_id} was {action} successfully.")
-    else:
-        print(f"Test {test_id} could not be updated. Reason: {provision}")
-
-    return status, provision
-
-
-
-# NEW function to update the tests configuration
 def update_tests(cvs_agents: list, headers: dict):
-    """
-    Function to enable tests and assign agents.
-    """
-    print('+ update_tests function \n')
-    todays_date = datetime.now().strftime("%Y-%m-%d")
 
-    for agent_data in cvs_agents:
-        agent_id = agent_data.get("agentId")
-        aid = agent_data.get("aid")
-        agent_name = agent_data.get("name")
+    todays_date = datetime.now().strftime("%Y-%m-%d")    
+    print(f'+ update_tests function {todays_date} \n')
 
-        for test in agent_data.get("tests", []):
+    for info in cvs_agents:
+
+        for test in info.get("tests"):
+
             if not test.get("enabled"):
-                # Enable the test and assign the agent
-                agents = [{"agentId": agent_id}]
-                status, provision = update_test_status(
-                    test_id=test.get("testId"),
-                    aid=aid,
-                    agents=agents,
-                    enabled=True,
-                    headers=headers,
-                    description=todays_date
-                )
 
-                if status == 200 or 201:
-                    print(f"Test {test['testId']} enabled successfully and agent {agent_name} was assigned.")
+                url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={info.get('aid')}"
+                payload = {"agents": [{"agentId": info.get("agentId")}], "enabled": True, "description": todays_date}
+                
+                status, provision = put_data(headers, url, json.dumps(payload))
+
+                if status == 200 or status == 201:
+
+                    print(provision)
+        
+                    print(f"\tTest {test['testId']} was enabled successfully and agent {info.get('name')} was assigned.")
+        
                 else:
-                    print(f"Test {test['testId']} failed to enable. Reason: {provision}")
-            else:
-                print(f"Test {test['testId']} is already enabled for agent {agent_name}.")
-    return cvs_agents
+        
+                    print(f"\tTest {test['testId']} failed to be enabled and agent {status} not assigned. Reason: {provision}")
 
+
+            elif test.get("enabled") == 3:
+        
+                url = f'{endp_url3}/{test.get("testId")}'
+                
+                status, get_test_details = get_data(headers, url, params={"aid": info.get("aid"), "expand": "agent"})
+
+
+                if status == 200 and "agents" in get_test_details:
+
+                    url = f'{endp_url3}/{test.get("testId")}?aid={info.get("aid")}'
+                
+                    new_agents = []
+                    new_agents.append({"agentId": info.get("agentId")})
+
+                    for agent in get_test_details.get("agents"):
+        
+                        new_agents.append({"agentId": agent.get("agentId")})
+
+                    
+                    payload = {"agents": new_agents, "enabled": True, "description": todays_date}
+                    status, provision = put_data(headers=headers, endp_url=url, payload=json.dumps(payload))
+
+
+                    if status == 200 or status == 201:
+        
+                        print(f"\tTest {test['testId']} updated successfully, agent {info.get('name')} was added.")
+        
+                    else:
+        
+                        print(f"\tTest {test['testId']} couldn't be updated, no agent added to it. Reason: {provision}")
+
+    return cvs_agents
 
 
 
@@ -271,6 +276,7 @@ def disable_tests(cvs_agents:dict, headers:dict):
                 else:
 
                     print(f"    Test {test['testId']} could't be updated, agent {cvs_agents['name']} still lives there. Reason: {provision}")
+
 
 
 
