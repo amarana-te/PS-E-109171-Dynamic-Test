@@ -343,11 +343,11 @@ def disable_tests(cvs_agents:list, headers:dict):
 
                 if status == 200 or status == 201:
 
-                    print(f"    Test {test['testId']} was disabled, agent {agent.get('name')} 'removed'.")
+                    print(f"\tTest {test['testId']} was disabled, agent {agent.get('name')} 'removed' {provision}.")
                 
                 else:
 
-                    print(f"    Test {test['testId']} couln'd be disabled. Reason: {provision}")
+                    print(f"\n\nTest {test['testId']} couln'd be disabled. Reason: {provision}")
 
             
             elif test.get('agents'):
@@ -363,7 +363,7 @@ def disable_tests(cvs_agents:list, headers:dict):
 
                 else:
 
-                    print(f"\tTest {test['testId']} could't be updated, agent {agent('name')} still lives there. Reason: {provision}")
+                    print(f"\n\nTest {test['testId']} could't be updated, agent {agent('name')} still lives there. Reason: {provision}")
 
 
 
