@@ -237,7 +237,7 @@ def bulk_update(cvs_agents:list, headers:dict):
 
                 if status == 200 or status == 201:
         
-                    print(f"\tTest {test['testId']} updated successfully, agent {len(new_agents)} was added.")
+                    print(f"\tTest {test['testId']} updated successfully, {len(test.get('agents'))} agents were added.")
         
                 else:
         
@@ -269,18 +269,17 @@ def clean_and_group_tests(cvs_agents: list):
                     "remove_agents": []
                 }
 
-            # Si no hay agentes (caso de remover el test completo), agregamos el agente al 'remove_agents'
-            if not test.get('agents'):
-            
-                grouped_tests[test_id]["remove_agents"].append({"agentId": agent['agentId']})
+            # Si hay agentes asociados al test, los agregamos a la lista
+            if test.get("agents"):
 
-            # Si hay agentes específicos a remover, se agregan a la lista
-            elif test.get('agents'):
-            
-                grouped_tests[test_id]["agents"].extend(test.get('agents'))
+                for agent_info in test.get("agents"):
+
+                    if agent_info not in grouped_tests[test_id]["agents"]:
+
+                        grouped_tests[test_id]["agents"].append(agent_info)
+    
 
     return grouped_tests
-
 
 
 
@@ -295,18 +294,18 @@ def bulk_disable(cvs_agents:list, headers:dict):
         url = f"{BASE_URL}tests/http-server/{test_id}?aid={details['aid']}"
 
         # Si hay agentes que remover, enviamos una actualización con los agentes a remover
-        if details['remove_agents']:
+        if not details['agents']:
 
-            payload = {"enabled": False, "agents": details['remove_agents']}
+            payload = {"enabled": False}
             status, provision = put_data(headers, url, json.dumps(payload))
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test_id} was disabled, agents {len(details['remove_agents'])} were removed.")
+                print(f"\tTest {test_id} was disabled. {provision}")
             
             else:
 
-                print(f"\nTest {test_id} couldn't be disabled. Reason: {provision}")
+                print(f"\n\nTest {test_id} couldn't be disabled. Reason: {provision}")
 
         # Si hay agentes a actualizar, mandamos la lista de agentes
         if details['agents']:
@@ -317,11 +316,11 @@ def bulk_disable(cvs_agents:list, headers:dict):
 
             if status == 200 or status == 201:
 
-                print(f"\nTest {test_id} was updated with agents {details['agents']}.")
+                print(f"\tTest {test_id} was updated, {len(details['agents'])} agent(s) were unassigned from the Test.")
 
             else:
 
-                print(f"\nTest {test_id} couldn't be updated. Reason: {provision}")
+                print(f"\n\nTest {test_id} couldn't be updated. Reason: {provision}")
 
 
 
@@ -349,6 +348,7 @@ def disable_tests(cvs_agents:list, headers:dict):
                 else:
 
                     print(f"    Test {test['testId']} couln'd be disabled. Reason: {provision}")
+
             
             elif test.get('agents'):
 

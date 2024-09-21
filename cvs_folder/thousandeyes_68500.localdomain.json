@@ -1,6 +1,6 @@
 {
     "name": "thousandeyes_68500.localdomain",
-    "urls": ["https://2.2.2.2:80"]
+    "urls": ["https://10.100.10.1:80"]
 }
 
 
