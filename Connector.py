@@ -15,7 +15,7 @@ class ConnectorSingleton:
         
         if cls._instance is None:
             
-            limits = httpx.Limits(max_keepalive_connections=5, max_connections=10, keepalive_expiry=15)
+            limits = httpx.Limits(max_keepalive_connections=15, max_connections=20, keepalive_expiry=15)
             timeout = httpx.Timeout(27, read=None, pool=15)
             cls._instance = httpx.Client(limits=limits, timeout=timeout)
         

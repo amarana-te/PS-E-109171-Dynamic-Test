@@ -1,4 +1,5 @@
 import os
+import re
 import json, time
 from datetime import datetime
 from Connector import get_data, put_data
@@ -7,6 +8,7 @@ BASE_URL = "https://api.thousandeyes.com/v7/"
 endp_url1 = f"{BASE_URL}account-groups"
 endp_url2 = f"{BASE_URL}agents"
 endp_url3 = f"{BASE_URL}tests/http-server"
+pattern = r"/RxConnectRxP/?"
 
 
 # Function to read all JSON files in a folder and return data from those modified today
@@ -81,11 +83,13 @@ def get_targets_test_list(data:list, headers:dict, aid: str):
         
             for test in tests["tests"]: #list all the tests
         
-                if test.get("url") in targets_list:
+                match = re.search(pattern, test.get("url"), re.IGNORECASE)
+
+                if test.get("url") in targets_list and match:
         
                     tests_info.append(test)
 
-                elif test.get("url") not in targets_list: ### Bertha already danced
+                elif test.get("url") not in targets_list and match: ### Bertha already danced
         
                     details_endp = f'{BASE_URL}tests/http-server/{test.get("testId")}'
                     params = {'aid': aid, 'expand': 'agent'}
@@ -121,7 +125,7 @@ def get_info(headers: dict, data: list):
         
             print(f"\tGathering data for this ag: {aid.get('accountGroupName')}\n")
 
-            full_target_list, full_tests_details = get_targets_test_list(data, headers, aid.get("aid"))  
+            full_target_list, full_tests_details = get_targets_test_list(data, headers, aid.get("aid"))  # getting the tests per ag and tests details
 
             status, agents = get_data(headers=headers, endp_url=endp_url2, params={"aid": aid.get("aid"), "agentTypes": "enterprise"})
 
@@ -139,7 +143,7 @@ def get_info(headers: dict, data: list):
                         remove_tests = []
                         targets_list = get_targets_list(data, new_agent.get('name'))
 
-                        for test in full_target_list: #list all the tests
+                        for test in full_target_list: #list all the tests -******************************
     
                             if test.get("url") in targets_list:
     
@@ -180,6 +184,8 @@ def get_info(headers: dict, data: list):
                         #print(f'Status code {status} test agents: {agent.get("agentName")} is not on the agents list \n ')
 
     return new_data
+
+
 
 
 def group_agents_by_test(data):
@@ -232,6 +238,7 @@ def bulk_update(cvs_agents:list, headers:dict):
     print(f'+ update_tests function {todays_date} \n')
 
     tests_info =  group_agents_by_test(data=cvs_agents)
+
 
     for test in tests_info.get("targetUrls"):
 
@@ -345,7 +352,7 @@ def bulk_disable(cvs_agents:list, headers:dict):
                 print(f"\n\nTest {test_id} couldn't be disabled. Reason: {provision}")
 
         # Si hay agentes a actualizar, mandamos la lista de agentes
-        if details['agents']:
+        elif details['agents']:
 
             payload = {"enabled": True, "agents": details['agents']}
             
@@ -353,7 +360,7 @@ def bulk_disable(cvs_agents:list, headers:dict):
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test_id} was updated, {len(details['agents'])} agent(s) were unassigned from the Test.")
+                print(f"\tTest {test_id}, {provision.get('testName', provision)}, was updated and agent(s) were unassigned from the Test.")
 
             else:
 

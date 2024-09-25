@@ -42,7 +42,7 @@ def main(directory_path):
         print(f'This is the assignment information  \n\n{cvs_agents} \n')
         print("===========================================================\n")
 
-        #cvs_agents = bulk_update(cvs_agents, headers)
+        cvs_agents = bulk_update(cvs_agents, headers)
         
         if cvs_agents:
             
@@ -51,7 +51,7 @@ def main(directory_path):
         print("\n===========================================================")
         print('\n Unassign agents from previous run...\n')
         
-        #bulk_disable(cvs_agents, headers)
+        #disable_tests(cvs_agents, headers)
 
         print("\n===========================================================")
 
