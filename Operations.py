@@ -24,7 +24,7 @@ def read_files_newer_only(directory_path: str) -> list:
             mod_time = os.path.getmtime(file_path)
             mod_time_str = time.strftime('%Y-%m-%d', time.localtime(mod_time))
 
-            if mod_time_str == today:
+            if mod_time_str: #== today:
     
                 with open(file_path, 'r') as file:
     
@@ -59,6 +59,52 @@ def get_targets_list(data:list, agent):
             return target.get('urls')
         
 
+def get_targets_test_list(data:list, headers:dict, aid: str):
+
+    targets_list = []
+    tests_info = [] 
+    tests_details = []   
+    
+    for target in data:
+
+        urls = target.get("urls", [])
+
+        for url in urls:
+        
+            if url not in targets_list:
+        
+                targets_list.append(url)
+        
+        status, tests = get_data(headers, endp_url3, params={"aid": aid})
+
+        if status == 200 and "tests" in tests:
+        
+            for test in tests["tests"]: #list all the tests
+        
+                if test.get("url") in targets_list:
+        
+                    tests_info.append(test)
+
+                elif test.get("url") not in targets_list: ### Bertha already danced
+        
+                    details_endp = f'{BASE_URL}tests/http-server/{test.get("testId")}'
+                    params = {'aid': aid, 'expand': 'agent'}
+        
+                    status, test_details = get_data(headers=headers, endp_url=details_endp, params=params)
+
+                    if status == 200 and "agents" in test_details:
+
+                        tests_details.append(test_details)
+
+                    else:
+
+                        continue
+
+
+
+    return tests_info, tests_details
+        
+
 def get_info(headers: dict, data: list):
 
     new_data = []
@@ -75,10 +121,12 @@ def get_info(headers: dict, data: list):
         
             print(f"\tGathering data for this ag: {aid.get('accountGroupName')}\n")
 
+            full_target_list, full_tests_details = get_targets_test_list(data, headers, aid.get("aid"))  
+
             status, agents = get_data(headers=headers, endp_url=endp_url2, params={"aid": aid.get("aid"), "agentTypes": "enterprise"})
 
-            if "agents" in agents and status == 200:      
-                
+            if "agents" in agents and status == 200:  
+                 
                 for agent in agents["agents"]:
                 
                     if agent["agentName"] in agents_list:
@@ -87,66 +135,55 @@ def get_info(headers: dict, data: list):
 
                         new_agent = {"name":agent.get("agentName"), "agentId": agent.get("agentId"), "aid": aid.get("aid")}
 
-                        status, tests = get_data(headers, endp_url3, params={"aid": aid.get("aid")})
+                        tests_list = []
+                        remove_tests = []
+                        targets_list = get_targets_list(data, new_agent.get('name'))
 
-                        if status == 200:
+                        for test in full_target_list: #list all the tests
+    
+                            if test.get("url") in targets_list:
+    
+                                tests_list.append({"testId": test.get("testId"), "testDescription": test.get("description"), "enabled": test.get("enabled")})
 
-                            tests_list = []
-                            remove_tests = []
-                            targets_list = get_targets_list(data, new_agent.get('name'))
+                            elif test.get("url") not in targets_list: ### Bertha already danced
+                                
+                                for info in full_tests_details:
+                                        
+                                    platform_agents = []
+                                        
+                                    for platform_agent in info['agents']:
+                                        
+                                        platform_agents.append(platform_agent['agentId'])
+                                        
+                                    if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
+                                        
+                                        remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": []})
+                                    
+                                    if agent.get("agentId") in platform_agents and len(platform_agents) > 1:
+                                        
+                                        platform_agents.remove(agent.get("agentId"))
+                                        new_agents = []
+                                        
+                                        for ag in platform_agents:
+                                        
+                                            new_agents.append({"agentId": ag})
+                                        
+                                        remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": new_agents})
 
-                            for test in tests["tests"]: #list all the tests
-        
-                                if test.get("url") in targets_list:
-        
-                                    tests_list.append({"testId": test.get("testId"), "testDescription": test.get("description"), "enabled": test.get("enabled")})
-
-                                elif test.get("url") not in tests_list:
-        
-                                    details_endp = f'{BASE_URL}tests/http-server/{test.get("testId")}'
-                                    params = {'aid': aid.get("aid"), 'expand': 'agent'}
-        
-                                    status, test_details = get_data(headers=headers, endp_url=details_endp, params=params)
-
-                                    if status == 200:
-        
-                                        platform_agents = []
-
-                                        if "agents" in test_details:
-                                            
-                                            for platform_agent in test_details['agents']:
-                                            
-                                                platform_agents.append(platform_agent['agentId'])
-
-                                            if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
-                                            
-                                                remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": []})
-
-                                            if agent.get("agentId") in platform_agents and len(platform_agents) > 1:
-                                            
-                                                platform_agents.remove(agent.get("agentId"))
-
-                                                new_agents = []
-                                            
-                                                for ag in platform_agents:
-                                            
-                                                    new_agents.append({"agentId": ag})
-
-                                                remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": new_agents})
-
-                            new_agent.update({"tests": tests_list, "toRemove": remove_tests})
-                            new_data.append(new_agent)
-                            #break
-
+                        new_agent.update({"tests": tests_list, "toRemove": remove_tests})
+                        new_data.append(new_agent)
+                        #break
+            
+            else:
                 
-                    else:
-                        continue
+                continue
                         #print(f'Status code {status} test agents: {agent.get("agentName")} is not on the agents list \n ')
 
     return new_data
 
 
 def group_agents_by_test(data):
+    
     target_urls = {}
 
     for agent in data:
@@ -301,7 +338,7 @@ def bulk_disable(cvs_agents:list, headers:dict):
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test_id} was disabled. {provision}")
+                print(f"\tTest {test_id} was disabled.")
             
             else:
 
@@ -343,7 +380,7 @@ def disable_tests(cvs_agents:list, headers:dict):
 
                 if status == 200 or status == 201:
 
-                    print(f"\tTest {test['testId']} was disabled, agent {agent.get('name')} 'removed' {provision}.")
+                    print(f"\tTest {test['testId']} was disabled, agent {agent.get('name')} 'removed'.")
                 
                 else:
 

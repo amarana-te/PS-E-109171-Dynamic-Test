@@ -1,5 +1,6 @@
 import json
 import time
+import traceback
 from Operations import read_files_newer_only, get_info, bulk_update, bulk_disable, disable_tests
 
 # Read the token from token.txt
@@ -41,7 +42,7 @@ def main(directory_path):
         print(f'This is the assignment information  \n\n{cvs_agents} \n')
         print("===========================================================\n")
 
-        cvs_agents = bulk_update(cvs_agents, headers)
+        #cvs_agents = bulk_update(cvs_agents, headers)
         
         if cvs_agents:
             
@@ -50,7 +51,7 @@ def main(directory_path):
         print("\n===========================================================")
         print('\n Unassign agents from previous run...\n')
         
-        bulk_disable(cvs_agents, headers)
+        #bulk_disable(cvs_agents, headers)
 
         print("\n===========================================================")
 
@@ -69,6 +70,7 @@ def main(directory_path):
     except Exception as e:
         
         print(f"An unexpected error occurred: {e}. Please check the logs for more details.")
+        traceback.print_exc()
 
     finally:
         
