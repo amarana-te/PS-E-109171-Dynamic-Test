@@ -284,3 +284,21 @@ def get_info(headers: dict, data: list):
                         #print(f'Status code {status} test agents: {agent.get("agentName")} is not on the agents list \n ')
 
     return new_data
+
+
+"""
+#Adding workaround to scenario where test is disabled when it should not Sep 24th - lusarmie
+                if  test["agents"] == []:
+
+                    print(f"patching {test.get('agents')}")
+                    for cvs_agent in cvs_agents:
+                        
+                        for agent_test in cvs_agent['tests']:
+                            #We need to add the "new" agent to the list of agents on the test (previously not captured by get_info 
+                            # due to the fact that the "new" agent was not configured yet)
+                            if agent_test['testId'] == test["testId"]:
+                                
+                                test["agents"].append({"agentId": cvs_agent["agentId"]}) 
+                                print(f"adding agent {cvs_agent['agentId']} in test {test['testId']}")
+                    
+"""

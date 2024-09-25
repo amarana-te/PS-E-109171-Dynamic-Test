@@ -51,7 +51,7 @@ def main(directory_path):
         print("\n===========================================================")
         print('\n Unassign agents from previous run...\n')
         
-        #disable_tests(cvs_agents, headers)
+        bulk_disable(cvs_agents, headers)
 
         print("\n===========================================================")
 
