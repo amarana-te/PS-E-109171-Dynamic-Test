@@ -1,4 +1,5 @@
 import os
+import re
 import json, time
 from datetime import datetime
 from Connector import get_data, put_data
@@ -7,6 +8,7 @@ BASE_URL = "https://api.thousandeyes.com/v7/"
 endp_url1 = f"{BASE_URL}account-groups"
 endp_url2 = f"{BASE_URL}agents"
 endp_url3 = f"{BASE_URL}tests/http-server"
+pattern = r"/RxConnectRxP/?"
 
 
 # Function to read all JSON files in a folder and return data from those modified today
@@ -59,51 +61,42 @@ def get_targets_list(data:list, agent):
             return target.get('urls')
         
 
-def get_targets_test_list(data:list, headers:dict, aid: str):
+def get_targets_test_list(headers:dict, aid: str):
 
-    targets_list = []
-    tests_info = [] 
-    tests_details = []   
+    tests_details = []     
+    status, tests = get_data(headers, endp_url3, params={"aid": aid})
+
+    if status == 200 and "tests" in tests:
+        
+        for test in tests["tests"]: #list all the tests
+        
+            match = re.search(pattern, test.get("url"), re.IGNORECASE)
+            
+            if match:
     
-    for target in data:
+                details_endp = f'{BASE_URL}tests/http-server/{test.get("testId")}'
+                params = {'aid': aid, 'expand': 'agent'}
+    
+                status, test_details = get_data(headers=headers, endp_url=details_endp, params=params)
+            
+                if status == 200 and "agents" in test_details:
+            
+                    tests_details.append(test_details)
+            
+                else:
+            
+                    continue
 
-        urls = target.get("urls", [])
 
-        for url in urls:
+    return tests_details
         
-            if url not in targets_list:
-        
-                targets_list.append(url)
-        
-        status, tests = get_data(headers, endp_url3, params={"aid": aid})
 
-        if status == 200 and "tests" in tests:
-        
-            for test in tests["tests"]: #list all the tests
-        
-                if test.get("url") in targets_list:
-        
-                    tests_info.append(test)
+def intersection(lst1, lst2):
+    
+    lst3 = [value for value in lst1 if value in lst2]
+    
+    return lst3
 
-                elif test.get("url") not in targets_list: ### Bertha already danced
-        
-                    details_endp = f'{BASE_URL}tests/http-server/{test.get("testId")}'
-                    params = {'aid': aid, 'expand': 'agent'}
-        
-                    status, test_details = get_data(headers=headers, endp_url=details_endp, params=params)
-
-                    if status == 200 and "agents" in test_details:
-
-                        tests_details.append(test_details)
-
-                    else:
-
-                        continue
-
-
-
-    return tests_info, tests_details
-        
 
 def get_info(headers: dict, data: list):
 
@@ -121,7 +114,7 @@ def get_info(headers: dict, data: list):
         
             print(f"\tGathering data for this ag: {aid.get('accountGroupName')}\n")
 
-            full_target_list, full_tests_details = get_targets_test_list(data, headers, aid.get("aid"))  
+            full_tests_details = get_targets_test_list(headers, aid.get("aid"))  # getting the tests per ag and tests details
 
             status, agents = get_data(headers=headers, endp_url=endp_url2, params={"aid": aid.get("aid"), "agentTypes": "enterprise"})
 
@@ -137,49 +130,70 @@ def get_info(headers: dict, data: list):
 
                         tests_list = []
                         remove_tests = []
+                        tests_2_remove = []
                         targets_list = get_targets_list(data, new_agent.get('name'))
 
-                        for test in full_target_list: #list all the tests
-    
+                        # Optimización de la sección solicitada
+                        for test in full_tests_details:  # list all the tests - with details
+                            
                             if test.get("url") in targets_list:
-    
-                                tests_list.append({"testId": test.get("testId"), "testDescription": test.get("description"), "enabled": test.get("enabled")})
+                                tests_list.append({
+                                    "testId": test.get("testId"),
+                                    "testDescription": test.get("description"),
+                                    "enabled": test.get("enabled")
+                                })
 
-                            elif test.get("url") not in targets_list: ### Bertha already danced
+                            if test.get("url") not in targets_list:
                                 
-                                for info in full_tests_details:
-                                        
-                                    platform_agents = []
-                                        
-                                    for platform_agent in info['agents']:
-                                        
-                                        platform_agents.append(platform_agent['agentId'])
-                                        
-                                    if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
-                                        
-                                        remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": []})
-                                    
-                                    if agent.get("agentId") in platform_agents and len(platform_agents) > 1:
-                                        
-                                        platform_agents.remove(agent.get("agentId"))
-                                        new_agents = []
-                                        
-                                        for ag in platform_agents:
-                                        
-                                            new_agents.append({"agentId": ag})
-                                        
-                                        remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": new_agents})
+                                tests_2_remove.append(test)
+
+                        for info in tests_2_remove:
+                            
+                            platform_agents = [platform_agent['agentId'] for platform_agent in info['agents']]
+                            
+                            if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
+                            
+                                remove_tests.append({
+                                    "testId": info.get("testId"),
+                                    "testDescription": info.get("description"),
+                                    "agents": []
+                                })
+                            
+                            elif agent.get("agentId") in platform_agents and len(platform_agents) > 1:
+                            
+                                platform_agents.remove(agent.get("agentId"))
+                            
+                                new_agents = [{"agentId": ag} for ag in platform_agents]
+
+                                remove_tests.append({
+                                    "testId": info.get("testId"),
+                                    "testDescription": info.get("description"),
+                                    "agents": new_agents
+                                })
 
                         new_agent.update({"tests": tests_list, "toRemove": remove_tests})
+                        merged_list = []
+
+                        for agent_2_update_data in new_data:
+
+                            if agent_2_update_data['name'] != new_agent['name']:
+                                
+                                if agent_2_update_data.get('toRemove'):
+
+                                    for test_2_remove in agent_2_update_data.get('toRemove'):
+                                    
+                                        for test_2_remove_reference in new_agent.get('toRemove'):
+                                    
+                                            if test_2_remove['testId'] == test_2_remove_reference['testId']:
+
+                                                merged_list = intersection(test_2_remove_reference['agents'], test_2_remove['agents'])
+                                                test_2_remove_reference['agents'] = merged_list
+                                                test_2_remove['agents'] = merged_list
+
                         new_data.append(new_agent)
-                        #break
-            
-            else:
-                
-                continue
-                        #print(f'Status code {status} test agents: {agent.get("agentName")} is not on the agents list \n ')
 
     return new_data
+
 
 
 def group_agents_by_test(data):
@@ -233,6 +247,7 @@ def bulk_update(cvs_agents:list, headers:dict):
 
     tests_info =  group_agents_by_test(data=cvs_agents)
 
+
     for test in tests_info.get("targetUrls"):
 
         if not test.get("enabled"):
@@ -244,7 +259,7 @@ def bulk_update(cvs_agents:list, headers:dict):
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test['testId']} was enabled successfully and agents {len(test.get('agents'))} were assigned.")
+                print(f"\tTest {test['testId']}, {provision.get('testName', provision)}, was enabled successfully and agents {len(test.get('agents'))} were assigned.")
         
             else:
         
@@ -274,7 +289,7 @@ def bulk_update(cvs_agents:list, headers:dict):
 
                 if status == 200 or status == 201:
         
-                    print(f"\tTest {test['testId']} updated successfully, {len(test.get('agents'))} agents were added.")
+                    print(f"\tTest {test['testId']}, {provision.get('testName', provision)}, updated successfully, {len(test.get('agents'))} agents were added.")
         
                 else:
         
@@ -307,8 +322,20 @@ def clean_and_group_tests(cvs_agents: list):
                 }
 
             # Si hay agentes asociados al test, los agregamos a la lista
-            if test.get("agents"):
+            if test.get("agents") or test["agents"] == []:
+                
+                #Adding workaround to scenario where test is disabled when it should not Sep 24th - lusarmie
+                if test["agents"] == []:
+                    
+                    for cvs_agent in cvs_agents:
+                        
+                        for agent_test in cvs_agent['tests']:
+                            #We need to add the "new" agent to the list of agents on the test (previously not captured by get_info 
+                            # due to the fact that the "new" agent was not configured yet)
+                            if agent_test['testId'] == test["testId"]:
 
+                                test["agents"].append({"agentId": cvs_agent["agentId"]})
+                                
                 for agent_info in test.get("agents"):
 
                     if agent_info not in grouped_tests[test_id]["agents"]:
@@ -338,14 +365,14 @@ def bulk_disable(cvs_agents:list, headers:dict):
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test_id} was disabled.")
+                print(f"\tTest {test_id}, {provision.get('testName', provision)} was disabled.")
             
             else:
 
                 print(f"\n\nTest {test_id} couldn't be disabled. Reason: {provision}")
 
         # Si hay agentes a actualizar, mandamos la lista de agentes
-        if details['agents']:
+        elif details['agents']:
 
             payload = {"enabled": True, "agents": details['agents']}
             
@@ -353,7 +380,7 @@ def bulk_disable(cvs_agents:list, headers:dict):
 
             if status == 200 or status == 201:
 
-                print(f"\tTest {test_id} was updated, {len(details['agents'])} agent(s) were unassigned from the Test.")
+                print(f"\tTest {test_id}, {provision.get('testName', provision)}, was updated and agent(s) were unassigned from the Test.")
 
             else:
 
