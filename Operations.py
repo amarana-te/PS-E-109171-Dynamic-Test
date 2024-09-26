@@ -61,12 +61,6 @@ def get_targets_list(data:list, agent):
             return target.get('urls')
         
 
-"""            for url in urls:
-        
-                if url not in targets_list:
-        
-                    targets_list.append(url)"""
-
 def get_targets_test_list(headers:dict, aid: str):
 
     tests_details = []     
@@ -96,6 +90,13 @@ def get_targets_test_list(headers:dict, aid: str):
 
     return tests_details
         
+
+def intersection(lst1, lst2):
+    
+    lst3 = [value for value in lst1 if value in lst2]
+    
+    return lst3
+
 
 def get_info(headers: dict, data: list):
 
@@ -129,49 +130,69 @@ def get_info(headers: dict, data: list):
 
                         tests_list = []
                         remove_tests = []
+                        tests_2_remove = []
                         targets_list = get_targets_list(data, new_agent.get('name'))
 
-                        for test in full_tests_details: #list all the tests - with details
-    
+                        # Optimización de la sección solicitada
+                        for test in full_tests_details:  # list all the tests - with details
+                            
                             if test.get("url") in targets_list:
-    
-                                tests_list.append({"testId": test.get("testId"), "testDescription": test.get("description"), "enabled": test.get("enabled")})
+                                tests_list.append({
+                                    "testId": test.get("testId"),
+                                    "testDescription": test.get("description"),
+                                    "enabled": test.get("enabled")
+                                })
 
-                            elif test.get("url") not in targets_list: ### Bertha already danced
-                                            
-                                platform_agents = []
-                                        
-                                for platform_agent in test['agents']:
-                                        
-                                    platform_agents.append(platform_agent['agentId'])
-                                        
-                                if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
-                                        
-                                    remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": []})
-                                    
-                                if agent.get("agentId") in platform_agents and len(platform_agents) > 1:
-                                        
-                                    platform_agents.remove(agent.get("agentId"))
-                                    new_agents = []
-                                        
-                                    for ag in platform_agents:
-                                        
-                                        new_agents.append({"agentId": ag})
-                                        
-                                    remove_tests.append({"testId": test.get("testId"), "testDescription": test.get("description"), "agents": new_agents})
+                            if test.get("url") not in targets_list:
+                                
+                                tests_2_remove.append(test)
 
-                        
+                        for info in tests_2_remove:
+                            
+                            platform_agents = [platform_agent['agentId'] for platform_agent in info['agents']]
+                            
+                            if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
+                            
+                                remove_tests.append({
+                                    "testId": info.get("testId"),
+                                    "testDescription": info.get("description"),
+                                    "agents": []
+                                })
+                            
+                            elif agent.get("agentId") in platform_agents and len(platform_agents) > 1:
+                            
+                                platform_agents.remove(agent.get("agentId"))
+                            
+                                new_agents = [{"agentId": ag} for ag in platform_agents]
+
+                                remove_tests.append({
+                                    "testId": info.get("testId"),
+                                    "testDescription": info.get("description"),
+                                    "agents": new_agents
+                                })
+
                         new_agent.update({"tests": tests_list, "toRemove": remove_tests})
+                        merged_list = []
+
+                        for agent_2_update_data in new_data:
+
+                            if agent_2_update_data['name'] != new_agent['name']:
+                                
+                                if agent_2_update_data.get('toRemove'):
+
+                                    for test_2_remove in agent_2_update_data.get('toRemove'):
+                                    
+                                        for test_2_remove_reference in new_agent.get('toRemove'):
+                                    
+                                            if test_2_remove['testId'] == test_2_remove_reference['testId']:
+
+                                                merged_list = intersection(test_2_remove_reference['agents'], test_2_remove['agents'])
+                                                test_2_remove_reference['agents'] = merged_list
+                                                test_2_remove['agents'] = merged_list
+
                         new_data.append(new_agent)
-                        #break
-            
-            else:
-                
-                continue
-                        #print(f'Status code {status} test agents: {agent.get("agentName")} is not on the agents list \n ')
 
     return new_data
-
 
 
 
