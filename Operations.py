@@ -323,7 +323,19 @@ def clean_and_group_tests(cvs_agents: list):
 
             # Si hay agentes asociados al test, los agregamos a la lista
             if test.get("agents") or test["agents"] == []:
+                
+                #Adding workaround to scenario where test is disabled when it should not Sep 24th - lusarmie
+                if test["agents"] == []:
+                    
+                    for cvs_agent in cvs_agents:
+                        
+                        for agent_test in cvs_agent['tests']:
+                            #We need to add the "new" agent to the list of agents on the test (previously not captured by get_info 
+                            # due to the fact that the "new" agent was not configured yet)
+                            if agent_test['testId'] == test["testId"]:
 
+                                test["agents"].append({"agentId": cvs_agent["agentId"]})
+                                
                 for agent_info in test.get("agents"):
 
                     if agent_info not in grouped_tests[test_id]["agents"]:
