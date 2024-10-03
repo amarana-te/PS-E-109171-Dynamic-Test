@@ -73,6 +73,7 @@ def get_targets_test_list(headers:dict, aid: str):
             match = re.search(pattern, test.get("url"), re.IGNORECASE)
             
             if match:
+
     
                 details_endp = f'{BASE_URL}tests/http-server/{test.get("testId")}'
                 params = {'aid': aid, 'expand': 'agent'}
@@ -84,7 +85,6 @@ def get_targets_test_list(headers:dict, aid: str):
                     tests_details.append(test_details)
             
                 else:
-            
                     continue
 
 
@@ -111,86 +111,90 @@ def get_info(headers: dict, data: list):
         agents_list = get_agents_list(data)
         
         for aid in account_groups['accountGroups']:
+
+            if 'Retail Stores' in aid.get('accountGroupName'):
         
-            print(f"\tGathering data for this ag: {aid.get('accountGroupName')}\n")
+                print(f"\tGathering data for this ag: {aid.get('accountGroupName')}\n")
 
-            full_tests_details = get_targets_test_list(headers, aid.get("aid"))  # getting the tests per ag and tests details
+                full_tests_details = get_targets_test_list(headers, aid.get("aid"))  # getting the tests per ag and tests details
 
-            status, agents = get_data(headers=headers, endp_url=endp_url2, params={"aid": aid.get("aid"), "agentTypes": "enterprise"})
+                status, agents = get_data(headers=headers, endp_url=endp_url2, params={"aid": aid.get("aid"), "agentTypes": "enterprise"})
 
-            if "agents" in agents and status == 200:  
-                 
-                for agent in agents["agents"]:
-                
-                    if agent["agentName"] in agents_list:
-                
-                        print(f"\t----> {agent.get('agentName')} agent was found at {aid.get('accountGroupName')} \n")
+                if "agents" in agents and status == 200:  
+                    
+                    for agent in agents["agents"]:
+                    
+                        if agent["agentName"] in agents_list:
+                    
+                            print(f"\t----> {agent.get('agentName')} agent was found at {aid.get('accountGroupName')} \n")
 
-                        new_agent = {"name":agent.get("agentName"), "agentId": agent.get("agentId"), "aid": aid.get("aid")}
+                            new_agent = {"name":agent.get("agentName"), "agentId": agent.get("agentId"), "aid": aid.get("aid")}
 
-                        tests_list = []
-                        remove_tests = []
-                        tests_2_remove = []
-                        targets_list = get_targets_list(data, new_agent.get('name'))
+                            tests_list = []
+                            remove_tests = []
+                            tests_2_remove = []
+                            targets_list = get_targets_list(data, new_agent.get('name'))
 
-                        # Optimización de la sección solicitada
-                        for test in full_tests_details:  # list all the tests - with details
-                            
-                            if test.get("url") in targets_list:
-                                tests_list.append({
-                                    "testId": test.get("testId"),
-                                    "testDescription": test.get("description"),
-                                    "enabled": test.get("enabled")
-                                })
 
-                            if test.get("url") not in targets_list:
+
+                            # Optimización de la sección solicitada
+                            for test in full_tests_details:  # list all the tests - with details
                                 
-                                tests_2_remove.append(test)
+                                if test.get("url") in targets_list:
+                                    tests_list.append({
+                                        "testId": test.get("testId"),
+                                        "testDescription": test.get("description"),
+                                        "enabled": test.get("enabled")
+                                    })
 
-                        for info in tests_2_remove:
-                            
-                            platform_agents = [platform_agent['agentId'] for platform_agent in info['agents']]
-                            
-                            if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
-                            
-                                remove_tests.append({
-                                    "testId": info.get("testId"),
-                                    "testDescription": info.get("description"),
-                                    "agents": []
-                                })
-                            
-                            elif agent.get("agentId") in platform_agents and len(platform_agents) > 1:
-                            
-                                platform_agents.remove(agent.get("agentId"))
-                            
-                                new_agents = [{"agentId": ag} for ag in platform_agents]
+                                if test.get("url") not in targets_list:
+                                    
+                                    tests_2_remove.append(test)
 
-                                remove_tests.append({
-                                    "testId": info.get("testId"),
-                                    "testDescription": info.get("description"),
-                                    "agents": new_agents
-                                })
-
-                        new_agent.update({"tests": tests_list, "toRemove": remove_tests})
-                        merged_list = []
-
-                        for agent_2_update_data in new_data:
-
-                            if agent_2_update_data['name'] != new_agent['name']:
+                            for info in tests_2_remove:
                                 
-                                if agent_2_update_data.get('toRemove'):
+                                platform_agents = [platform_agent['agentId'] for platform_agent in info['agents']]
+                                
+                                if agent.get("agentId") in platform_agents and len(platform_agents) == 1:
+                                
+                                    remove_tests.append({
+                                        "testId": info.get("testId"),
+                                        "testDescription": info.get("description"),
+                                        "agents": []
+                                    })
+                                
+                                elif agent.get("agentId") in platform_agents and len(platform_agents) > 1:
+                                
+                                    platform_agents.remove(agent.get("agentId"))
+                                
+                                    new_agents = [{"agentId": ag} for ag in platform_agents]
 
-                                    for test_2_remove in agent_2_update_data.get('toRemove'):
+                                    remove_tests.append({
+                                        "testId": info.get("testId"),
+                                        "testDescription": info.get("description"),
+                                        "agents": new_agents
+                                    })
+
+                            new_agent.update({"tests": tests_list, "toRemove": remove_tests})
+                            merged_list = []
+
+                            for agent_2_update_data in new_data:
+
+                                if agent_2_update_data['name'] != new_agent['name']:
                                     
-                                        for test_2_remove_reference in new_agent.get('toRemove'):
-                                    
-                                            if test_2_remove['testId'] == test_2_remove_reference['testId']:
+                                    if agent_2_update_data.get('toRemove'):
 
-                                                merged_list = intersection(test_2_remove_reference['agents'], test_2_remove['agents'])
-                                                test_2_remove_reference['agents'] = merged_list
-                                                test_2_remove['agents'] = merged_list
+                                        for test_2_remove in agent_2_update_data.get('toRemove'):
+                                        
+                                            for test_2_remove_reference in new_agent.get('toRemove'):
+                                        
+                                                if test_2_remove['testId'] == test_2_remove_reference['testId']:
 
-                        new_data.append(new_agent)
+                                                    merged_list = intersection(test_2_remove_reference['agents'], test_2_remove['agents'])
+                                                    test_2_remove_reference['agents'] = merged_list
+                                                    test_2_remove['agents'] = merged_list
+
+                            new_data.append(new_agent)
 
     return new_data
 
@@ -223,13 +227,15 @@ def group_agents_by_test(data):
                 
                 
                 target_urls[test_id]['agents'].append(eas)
+            
+            target_urls[test_id]['aid'] = aid
 
     # Convertimos a la estructura requerida
     result = {
         "targetUrls": [
             {
                 "testId": test_id,
-                "aid": aid,
+                "aid":  test_data['aid'],
                 "enabled": test_data['enabled'],
                 "agents": test_data['agents']
             }
@@ -255,6 +261,7 @@ def bulk_update(cvs_agents:list, headers:dict):
             url = f"{BASE_URL}tests/http-server/{test.get('testId')}?aid={test.get('aid')}"
             payload = {"agents": test.get("agents"), "enabled": True, "description": todays_date}
                 
+            
             status, provision = put_data(headers, url, json.dumps(payload))
 
             if status == 200 or status == 201:
@@ -286,13 +293,12 @@ def bulk_update(cvs_agents:list, headers:dict):
                 payload = {"agents": new_agents, "enabled": True, "description": todays_date}
                 status, provision = put_data(headers=headers, endp_url=url, payload=json.dumps(payload))
 
-
                 if status == 200 or status == 201:
-        
+                    
                     print(f"\tTest {test['testId']}, {provision.get('testName', provision)}, updated successfully, {len(test.get('agents'))} agents were added.")
         
                 else:
-        
+
                     print(f"\tTest {test['testId']} couldn't be updated, no agent added to it. Reason: {provision}")
 
 
