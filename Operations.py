@@ -72,7 +72,7 @@ def get_targets_test_list(headers:dict, aid: str):
         
             match = re.search(pattern, test.get("url"), re.IGNORECASE)
             
-            if match:
+            if match and test.get('savedEvent') == False:
 
     
                 details_endp = f'{BASE_URL}tests/http-server/{test.get("testId")}'
@@ -362,13 +362,12 @@ def bulk_disable(cvs_agents:list, headers:dict):
     for test_id, details in grouped_tests.items():
     
         url = f"{BASE_URL}tests/http-server/{test_id}?aid={details['aid']}"
-        print("URL -- ", url)
 
         # Si hay agentes que remover, enviamos una actualización con los agentes a remover
         if not details['agents']:
 
             payload = {"enabled": False}
-            #status, provision = put_data(headers, url, json.dumps(payload))
+            status, provision = put_data(headers, url, json.dumps(payload))
 
             if status == 200 or status == 201:
 
