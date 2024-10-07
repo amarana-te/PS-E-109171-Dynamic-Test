@@ -42,7 +42,7 @@ def main(directory_path):
         print(f'This is the assignment information  \n\n{cvs_agents} \n')
         print("===========================================================\n")
 
-        cvs_agents = bulk_update(cvs_agents, headers)
+        #cvs_agents = bulk_update(cvs_agents, headers)
         
         if cvs_agents:
             
