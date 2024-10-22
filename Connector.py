@@ -1,7 +1,7 @@
 import httpx
 import time
 import logging
-import logging.handlers
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
 
@@ -24,6 +24,31 @@ class ConnectorSingleton:
 
 super_http = ConnectorSingleton.get_instance()
 
+def setup_api_calls_logger():
+    # Crear el logger para las llamadas de API
+    logger = logging.getLogger("api_calls_logger")
+    
+    # Verificar si ya está configurado
+    if not logger.hasHandlers():
+
+        logger.setLevel(logging.INFO)
+        
+        # Configurar un handler para escribir logs en un archivo con rotación automática
+        file_handler = RotatingFileHandler(filename='api_calls.log', maxBytes=100000, backupCount=5)
+        
+        # Configurar el formato del log
+        formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Agregar el handler al logger
+        logger.addHandler(file_handler)
+
+    
+    return logger
+
+
+logging = setup_api_calls_logger()
+
 
 
 def handle_api_errors(response, endpoint):
@@ -32,11 +57,18 @@ def handle_api_errors(response, endpoint):
     if response.status_code in {400, 401, 403, 404, 405}:
         
         error_message = f"Error {response.status_code} for {endpoint}: {response.text}"
-        #logging.error(error_message)
+        logging.error(error_message)
         
         return response.status_code, response.json(), True
     
     return None, None, False
+
+
+def log_request(endpoint, status_code, roundtrip):
+
+    """Log the request details including the time taken and status code."""
+    
+    logging.info(f"Status Code {status_code}: {endpoint} time: {roundtrip:.4f} seconds")
 
 
 def request_with_retry(method, url, **kwargs):
@@ -63,7 +95,7 @@ def request_with_retry(method, url, **kwargs):
         response = super_http.request(method, url, **kwargs)
         roundtrip = time.time() - retry_start
     
-    
+    log_request(url, response.status_code, roundtrip)
     # Handle specific error codes
     status_code, error_response, has_error = handle_api_errors(response, url)
     

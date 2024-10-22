@@ -1,0 +1,7 @@
+{
+    "name": "thousandeyes_2101.localdomain",
+    "urls": [
+        "https://10.100.20.4/RxConnectRxP/",
+        "https://10.100.20.1/RxConnectRxP/"
+    ]
+}

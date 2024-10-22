@@ -112,13 +112,14 @@ def get_info(headers: dict, data: list):
         
         for aid in account_groups['accountGroups']:
 
-            if 'Retail Stores' in aid.get('accountGroupName'):
+            if 'Reatil Stores' in aid.get('accountGroupName'):
         
                 print(f"\tGathering data for this ag: {aid.get('accountGroupName')}\n")
 
                 full_tests_details = get_targets_test_list(headers, aid.get("aid"))  # getting the tests per ag and tests details
 
-                status, agents = get_data(headers=headers, endp_url=endp_url2, params={"aid": aid.get("aid"), "agentTypes": "enterprise"})
+                params = {"aid": aid.get("aid"), "agentTypes": "enterprise"}
+                status, agents = get_data(headers=headers, endp_url=endp_url2, params=params)
 
                 if "agents" in agents and status == 200:  
                     
